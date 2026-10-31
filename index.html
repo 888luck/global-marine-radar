@@ -1,1243 +1,632 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<html lang="en" class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AERO-RADAR // Global Tactical Marine & Meteo Telemetry</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>AERO-RADAR // Global Rain & Marine Telemetry</title>
   
-  <!-- Tailwind CSS -->
+  <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin />
+  <link rel="preconnect" href="https://api.rainviewer.com" crossorigin />
+  <link rel="preconnect" href="https://marine-api.open-meteo.com" crossorigin />
+
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- MapLibre GL JS -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <!-- SunCalc -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            mono: ['JetBrains Mono', 'SF Mono', 'Roboto Mono', 'Menlo', 'monospace'],
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-          },
           colors: {
             tactical: {
               950: '#06090e',
-              900: '#0a0f18',
-              850: '#0f1724',
-              800: '#152032',
-              700: '#22324b',
-              accent: '#38bdf8', // Tactical Sky Cyan
-              amber: '#f59e0b',
-              emerald: '#10b981',
-              crimson: '#f43f5e'
+              900: '#0d131d',
+              850: '#121a27',
+              800: '#1a2436',
+              700: '#26344d',
+              accent: '#00f0ff',
+              warning: '#ffb703',
+              danger: '#ff0055'
             }
+          },
+          fontFamily: {
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
           }
         }
       }
     }
   </script>
 
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
   <style>
-    /* Custom Scrollbar & Tactical Aesthetics */
-    ::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(10, 15, 24, 0.8);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #22324b;
-      border-radius: 2px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #38bdf8;
-    }
-
-    /* Clean Leaflet resets for dark instrument styling */
-    .leaflet-container {
-      background: #06090e !important;
-      font-family: inherit;
-    }
-    .leaflet-bar {
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      border-radius: 6px !important;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7) !important;
-      overflow: hidden;
-    }
-    .leaflet-bar a {
-      background-color: rgba(15, 23, 36, 0.85) !important;
-      color: #94a3b8 !important;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-      backdrop-filter: blur(8px);
-      transition: all 0.15s ease;
-    }
-    .leaflet-bar a:hover {
-      background-color: #22324b !important;
-      color: #38bdf8 !important;
-    }
-    .leaflet-control-attribution {
-      background: rgba(6, 9, 14, 0.75) !important;
-      color: #64748b !important;
-      font-size: 9px !important;
-      font-family: monospace;
-      backdrop-filter: blur(4px);
-    }
-    .leaflet-control-attribution a {
-      color: #94a3b8 !important;
-      text-decoration: none;
-    }
-
-    /* GPS Pulsing Beacon */
-    .gps-beacon-container {
-      position: relative;
-      width: 24px;
-      height: 24px;
-    }
-    .gps-beacon-pulse {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: rgba(56, 189, 248, 0.4);
-      animation: beacon-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-    }
-    .gps-beacon-dot {
-      position: absolute;
-      top: 6px;
-      left: 6px;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #38bdf8;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 10px #38bdf8;
-    }
-    @keyframes beacon-ping {
-      75%, 100% {
-        transform: scale(2.8);
-        opacity: 0;
-      }
-    }
-
-    /* Crosshair Center Reticle */
-    .reticle-line-h {
-      width: 20px;
-      height: 1px;
-      background: rgba(56, 189, 248, 0.7);
-    }
-    .reticle-line-v {
-      height: 20px;
-      width: 1px;
-      background: rgba(56, 189, 248, 0.7);
-    }
-
-    /* Slider Track Accent */
-    input[type=range] {
-      accent-color: #38bdf8;
-    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { margin-bottom: 96px !important; }
   </style>
 </head>
-<body class="h-full w-full overflow-hidden select-none font-sans text-slate-200">
+<body class="h-full w-full overflow-hidden bg-tactical-950 select-none font-mono text-xs">
 
-  <!-- Main Map Container -->
-  <div id="map" class="absolute inset-0 z-0 h-full w-full"></div>
+  <!-- Fullscreen Map Canvas -->
+  <div id="map" class="absolute inset-0 z-0 bg-tactical-950"></div>
 
-  <!-- Center Tactical Aiming Reticle (Toggled on or subtle) -->
-  <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-40">
-    <div class="relative flex items-center justify-center">
-      <div class="reticle-line-h absolute"></div>
-      <div class="reticle-line-v absolute"></div>
-      <div class="h-2 w-2 rounded-full border border-sky-400"></div>
-    </div>
-  </div>
-
-  <!-- TOP BAR: Quick-Jump Preset Island Navigation & Status -->
-  <header class="absolute top-0 left-0 right-0 z-20 p-2 sm:p-3 pointer-events-none">
-    <div class="max-w-7xl mx-auto flex flex-col gap-2">
-      <!-- Upper Strip: System Brand & Global Telemetry Header -->
-      <div class="flex items-center justify-between pointer-events-auto">
-        <div class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-900/85 backdrop-blur-md border border-slate-700/60 shadow-xl">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
-          <span class="font-mono text-xs font-semibold tracking-wider text-slate-200 uppercase">AERO<span class="text-sky-400">RADAR</span></span>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50" id="sysTimeUtc">--:--:-- UTC</span>
-        </div>
-
-        <div class="flex items-center gap-1.5">
-          <!-- Recenter to GPS button -->
-          <button id="btnGeoLocate" title="Locate Device" class="p-2 rounded-lg bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-700/60 text-slate-300 hover:text-sky-400 shadow-xl transition active:scale-95">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>
-            </svg>
-          </button>
-
-          <!-- Refresh Data button -->
-          <button id="btnRefresh" title="Force Refresh Radars" class="p-2 rounded-lg bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-700/60 text-slate-300 hover:text-sky-400 shadow-xl transition active:scale-95">
-            <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path d="M21 12a9 9 0 00-15.5-6.3L3 8m0 0V3m0 5h5M3 12a9 9 0 0015.5 6.3L21 16m0 0v5m0-5h-5"/>
-            </svg>
-          </button>
-
-          <!-- System Personalization Settings Modal Trigger -->
-          <button id="btnOpenSettings" title="Instrument Configuration" class="p-2 rounded-lg bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-700/60 text-slate-300 hover:text-sky-400 shadow-xl transition active:scale-95">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
-        </div>
+  <!-- Top Navigation & Pinned Waypoints HUD -->
+  <header class="absolute top-0 left-0 right-0 z-20 pointer-events-none p-3 flex flex-col gap-2.5">
+    <div class="flex items-center justify-between gap-2">
+      <div class="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-lg bg-tactical-900/85 backdrop-blur-md border border-slate-800/80 shadow-2xl">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+        </span>
+        <span class="font-bold tracking-wider text-slate-200">AERORADAR</span>
+        <span class="text-[10px] text-slate-500">|</span>
+        <span id="utc-clock" class="text-cyan-400 tabular-nums">--:--:-- UTC</span>
       </div>
 
-      <!-- Quick-Jump Horizontal Waypoints & Pinned Pills -->
-      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pointer-events-auto py-0.5">
-        <div id="pillsContainer" class="flex items-center gap-1.5">
-          <!-- Dynamically injected preset pills -->
-        </div>
-        <button id="btnPinCurrentSpot" title="Pin current coordinates" class="flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-900/80 hover:bg-sky-950/80 text-sky-400 hover:text-sky-300 border border-sky-500/30 backdrop-blur-md text-[11px] font-mono transition shrink-0">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-          <span>PIN SPOT</span>
+      <div class="pointer-events-auto flex items-center gap-1.5 bg-tactical-900/85 backdrop-blur-md p-1 rounded-lg border border-slate-800/80 shadow-2xl">
+        <button id="btn-gps" title="Center GPS" class="p-2 rounded hover:bg-tactical-800 text-slate-300 hover:text-cyan-400 transition-colors">
+          <i data-lucide="crosshair" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-refresh" title="Force Sync Radar" class="p-2 rounded hover:bg-tactical-800 text-slate-300 hover:text-cyan-400 transition-colors">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-settings" title="Settings & Units" class="p-2 rounded hover:bg-tactical-800 text-slate-300 hover:text-cyan-400 transition-colors">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
         </button>
       </div>
+    </div>
+
+    <!-- Quick Jump Waypoint Chips -->
+    <div id="waypoints-strip" class="pointer-events-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+      <button data-lat="9.7319" data-lng="99.9856" data-zoom="10.5" class="waypoint-btn px-2.5 py-1 rounded-md bg-tactical-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 whitespace-nowrap transition-all flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>KOH PHANGAN
+      </button>
+      <button data-lat="9.5120" data-lng="100.0136" data-zoom="10.5" class="waypoint-btn px-2.5 py-1 rounded-md bg-tactical-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 whitespace-nowrap transition-all flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>KOH SAMUI
+      </button>
+      <button data-lat="10.0956" data-lng="99.8404" data-zoom="11.5" class="waypoint-btn px-2.5 py-1 rounded-md bg-tactical-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 whitespace-nowrap transition-all flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>KOH TAO
+      </button>
+      <button data-lat="7.9519" data-lng="98.3381" data-zoom="10" class="waypoint-btn px-2.5 py-1 rounded-md bg-tactical-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 whitespace-nowrap transition-all flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>PHUKET MARINE
+      </button>
+      <button data-lat="-8.4095" data-lng="115.1889" data-zoom="9.5" class="waypoint-btn px-2.5 py-1 rounded-md bg-tactical-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 whitespace-nowrap transition-all flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>BALI STRAIT
+      </button>
+      <button data-lat="43.5528" data-lng="7.0174" data-zoom="10.5" class="waypoint-btn px-2.5 py-1 rounded-md bg-tactical-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 whitespace-nowrap transition-all flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>FRENCH RIVIERA
+      </button>
+      <button id="btn-pin-spot" class="px-2 py-1 rounded-md bg-cyan-950/60 border border-cyan-800/80 text-cyan-400 hover:bg-cyan-900/80 whitespace-nowrap flex items-center gap-1 transition-all">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> PIN SPOT
+      </button>
     </div>
   </header>
 
-  <!-- LIVE POINT TARGET TELEMETRY BADGE (Top Right floating) -->
-  <div class="absolute top-24 right-2 sm:right-4 z-20 pointer-events-none max-w-[210px] sm:max-w-xs">
-    <div class="pointer-events-auto p-2.5 rounded-lg bg-slate-900/90 backdrop-blur-md border border-slate-700/60 shadow-2xl flex flex-col gap-1 text-[11px] font-mono">
-      <div class="flex items-center justify-between text-slate-400 pb-1 border-b border-slate-800">
-        <span class="flex items-center gap-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-          <span>COORDINATES</span>
+  <!-- Top-Right Live Telemetry Panel -->
+  <aside class="absolute top-24 right-3 z-10 pointer-events-none hidden md:block">
+    <div class="pointer-events-auto w-64 rounded-xl bg-tactical-900/85 backdrop-blur-md border border-slate-800/90 shadow-2xl p-3.5 space-y-2.5 text-slate-300">
+      <div class="flex items-center justify-between pb-1.5 border-b border-slate-800">
+        <span class="text-[10px] uppercase text-cyan-400 tracking-wider flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Coordinates
         </span>
-        <span id="telTargetName" class="text-slate-200 font-semibold truncate max-w-[90px]">Gulf of Thai</span>
+        <span id="loc-name" class="text-[11px] text-slate-200 font-semibold truncate max-w-[120px]">Scanning...</span>
       </div>
-      <div class="flex justify-between items-baseline pt-0.5">
-        <span class="text-slate-400">LAT/LON</span>
-        <span id="telCoords" class="text-sky-400 font-medium tracking-tight">09.73°N, 99.98°E</span>
-      </div>
-      <div class="flex justify-between items-baseline">
-        <span class="text-slate-400">PRESSURE</span>
-        <span id="telPressure" class="text-slate-200">--- hPa</span>
-      </div>
-      <div class="flex justify-between items-baseline">
-        <span class="text-slate-400">SURF / SWELL</span>
-        <span id="telWave" class="text-emerald-400">--- m</span>
-      </div>
-      <div class="flex justify-between items-center pt-0.5">
-        <span class="text-slate-400">WIND VECTOR</span>
-        <div class="flex items-center gap-1.5">
-          <svg id="windArrow" class="w-3.5 h-3.5 text-sky-400 transition-transform duration-500 transform" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-          </svg>
-          <span id="telWind" class="text-slate-200">-- kt</span>
+      
+      <div class="grid grid-cols-2 gap-2 text-[11px]">
+        <div>
+          <div class="text-[9px] text-slate-500">LAT / LON</div>
+          <div id="stat-latlon" class="tabular-nums font-bold text-slate-200">--</div>
+        </div>
+        <div>
+          <div class="text-[9px] text-slate-500">PRESSURE</div>
+          <div id="stat-pressure" class="tabular-nums font-bold text-slate-200">-- hPa</div>
+        </div>
+        <div>
+          <div class="text-[9px] text-slate-500">SURF / SWELL</div>
+          <div id="stat-wave" class="tabular-nums font-bold text-slate-200">-- m @ --s</div>
+        </div>
+        <div>
+          <div class="text-[9px] text-slate-500">WIND VECTOR</div>
+          <div id="stat-wind" class="tabular-nums font-bold text-cyan-400 flex items-center gap-1">
+            <span id="wind-arrow" class="inline-block transition-transform duration-500">▲</span>
+            <span id="stat-wind-val">-- kt</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </aside>
 
-  <!-- FLOATING CONSOLE DOCK (BOTTOM SHEET) -->
-  <div class="absolute bottom-0 left-0 right-0 z-30 pointer-events-none p-2 sm:p-4">
-    <div class="max-w-3xl mx-auto rounded-xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl overflow-hidden pointer-events-auto transition-all">
-      
-      <!-- Console Tabs Bar -->
-      <div class="flex items-center justify-between border-b border-slate-800/80 bg-slate-950/60 px-3 py-1.5">
-        <div class="flex items-center gap-1">
-          <button id="tabRadar" class="tab-btn active px-3 py-1 rounded text-xs font-mono font-medium tracking-wider transition bg-slate-800 text-sky-400 border border-slate-700/50">
-            RADAR TIMELINE
-          </button>
-          <button id="tabMarine" class="tab-btn px-3 py-1 rounded text-xs font-mono font-medium tracking-wider text-slate-400 hover:text-slate-200 transition">
-            MARINE & TIDES
-          </button>
-          <button id="tabForecast" class="tab-btn px-3 py-1 rounded text-xs font-mono font-medium tracking-wider text-slate-400 hover:text-slate-200 transition">
-            24H OUTLOOK
-          </button>
-        </div>
-
-        <!-- Sheet Expand / Collapse Chevron -->
-        <button id="btnToggleDock" class="text-slate-400 hover:text-slate-200 p-1">
-          <svg id="dockChevron" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M19 9l-7 7-7-7"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Dock Content Body -->
-      <div id="dockBody" class="p-3 sm:p-4 space-y-3">
-
-        <!-- VIEW 1: RADAR TIMELINE PLAYER -->
-        <div id="viewRadar" class="space-y-3">
-          <!-- Scrubber and transport controls -->
-          <div class="flex flex-col sm:flex-row items-center gap-3">
-            <div class="flex items-center gap-1.5">
-              <button id="btnStepBack" title="Step -1 frame" class="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-              </button>
-              <button id="btnPlayPause" title="Play/Pause loop" class="px-3 py-1.5 rounded bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold font-mono text-xs flex items-center gap-1.5 transition active:scale-95">
-                <svg id="playIcon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                <svg id="pauseIcon" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                <span id="playBtnText">PLAY</span>
-              </button>
-              <button id="btnStepForward" title="Step +1 frame" class="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-              </button>
-            </div>
-
-            <!-- Timeline Scrubber -->
-            <div class="flex-1 w-full flex flex-col gap-1">
-              <div class="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                <span id="frameTypeLabel">DOPPLER SWEEP (PAST)</span>
-                <span id="frameTimestamp" class="text-sky-400 font-semibold text-xs">SYNCHRONIZING...</span>
-              </div>
-              <input id="timelineSlider" type="range" min="0" max="0" value="0" step="1" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
-            </div>
-
-            <!-- Loop Speed Switcher -->
-            <button id="btnSpeed" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-mono text-slate-300 transition">
-              1.0x
-            </button>
+  <!-- Bottom Interactive Dock & Drawer -->
+  <footer class="absolute bottom-0 left-0 right-0 z-20 pointer-events-none p-2 sm:p-3 flex flex-col items-center">
+    
+    <!-- Expanded Drawer Content (Tides, Hourly, Marine) -->
+    <div id="marine-drawer" class="pointer-events-auto w-full max-w-4xl max-h-0 opacity-0 overflow-hidden transition-all duration-300 ease-out mb-2 rounded-xl bg-tactical-900/95 backdrop-blur-xl border border-slate-800 shadow-2xl">
+      <div class="p-4 space-y-4">
+        
+        <!-- Marine & Tide Status -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-slate-800/80 pb-3">
+          <div class="p-2.5 rounded-lg bg-tactical-850/60 border border-slate-800/50">
+            <div class="text-[10px] text-slate-400 uppercase">Tidal State</div>
+            <div id="drawer-tide-state" class="text-sm font-bold text-cyan-400 mt-0.5">EBB (Falling)</div>
+            <div id="drawer-tide-next" class="text-[10px] text-slate-400 mt-0.5">Low: --:--</div>
           </div>
-
-          <!-- Color Ramp Bar (dBZ / Rain Rate) -->
-          <div class="pt-1 flex flex-col gap-1 border-t border-slate-800/80">
-            <div class="flex justify-between items-center text-[9px] font-mono text-slate-400">
-              <span>PRECIPITATION REFLECTIVITY (dBZ)</span>
-              <span class="flex items-center gap-2">
-                <span>LIGHT DRIZZLE</span>
-                <span class="text-amber-400">MODERATE</span>
-                <span class="text-rose-400">DOWNPOUR</span>
-                <span class="text-purple-400 font-bold">HAIL/SEVERE</span>
-              </span>
-            </div>
-            <!-- Custom tactical spectrum ramp -->
-            <div class="h-2 w-full rounded overflow-hidden flex shadow-inner">
-              <div class="h-full flex-1" style="background:#00bcd4;" title="10-20 dBZ: Light mist"></div>
-              <div class="h-full flex-1" style="background:#26a69a;" title="20-30 dBZ: Light rain"></div>
-              <div class="h-full flex-1" style="background:#66bb6a;" title="30-35 dBZ: Moderate"></div>
-              <div class="h-full flex-1" style="background:#ffca28;" title="35-40 dBZ: Steady rain"></div>
-              <div class="h-full flex-1" style="background:#ffa726;" title="40-45 dBZ: Heavy"></div>
-              <div class="h-full flex-1" style="background:#ef5350;" title="45-50 dBZ: Tropical downpour"></div>
-              <div class="h-full flex-1" style="background:#b71c1c;" title="50-55 dBZ: Severe storm"></div>
-              <div class="h-full flex-1" style="background:#ab47bc;" title=">55 dBZ: Violent convective"></div>
-            </div>
+          <div class="p-2.5 rounded-lg bg-tactical-850/60 border border-slate-800/50">
+            <div class="text-[10px] text-slate-400 uppercase">Significant Wave</div>
+            <div id="drawer-wave" class="text-sm font-bold text-slate-200 mt-0.5">-- m</div>
+            <div id="drawer-wave-period" class="text-[10px] text-slate-400 mt-0.5">Period: -- s</div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-tactical-850/60 border border-slate-800/50">
+            <div class="text-[10px] text-slate-400 uppercase">Sea Water Temp</div>
+            <div id="drawer-seatemp" class="text-sm font-bold text-slate-200 mt-0.5">-- °C</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">Surface Level</div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-tactical-850/60 border border-slate-800/50">
+            <div class="text-[10px] text-slate-400 uppercase">Solar / Moon</div>
+            <div id="drawer-sun" class="text-xs font-bold text-amber-400 mt-0.5">↑ --:-- ↓ --:--</div>
+            <div id="drawer-moon" class="text-[10px] text-slate-400 mt-0.5">Waxing</div>
           </div>
         </div>
 
-        <!-- VIEW 2: MARINE & TIDAL TELEMETRY -->
-        <div id="viewMarine" class="hidden space-y-3">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono">
-            <div class="p-2.5 rounded bg-slate-950/60 border border-slate-800">
-              <div class="text-[10px] text-slate-400">SIGNIFICANT SWELL</div>
-              <div id="marineSwellVal" class="text-lg font-bold text-sky-400">--</div>
-              <div id="marineSwellDir" class="text-[10px] text-slate-500">PERIOD: --</div>
-            </div>
-            <div class="p-2.5 rounded bg-slate-950/60 border border-slate-800">
-              <div class="text-[10px] text-slate-400">WATER / SURFACE TEMP</div>
-              <div id="marineTempWater" class="text-lg font-bold text-emerald-400">--</div>
-              <div class="text-[10px] text-slate-500">OFFSHORE BUOY CALC</div>
-            </div>
-            <div class="p-2.5 rounded bg-slate-950/60 border border-slate-800">
-              <div class="text-[10px] text-slate-400">ESTIMATED TIDE</div>
-              <div id="marineTideState" class="text-base font-bold text-amber-400">--</div>
-              <div id="marineTideNext" class="text-[10px] text-slate-500">CYCLE APPROX</div>
-            </div>
-            <div class="p-2.5 rounded bg-slate-950/60 border border-slate-800">
-              <div class="text-[10px] text-slate-400">SEA VISIBILITY</div>
-              <div id="marineVis" class="text-lg font-bold text-slate-200">> 10 km</div>
-              <div class="text-[10px] text-slate-500">SURFACE LEVEL</div>
-            </div>
+        <!-- 24H Astronomical Tide Curve (SVG) -->
+        <div>
+          <div class="flex justify-between items-center mb-1 text-[10px] text-slate-400 uppercase tracking-wider">
+            <span>24H Harmonic Water Level Model</span>
+            <span class="text-cyan-400">Astronomical Projection</span>
           </div>
-
-          <!-- Dynamic SVG Tide Sinusoid Curve -->
-          <div class="p-2.5 rounded bg-slate-950/70 border border-slate-800 space-y-1">
-            <div class="flex justify-between items-center text-[10px] font-mono text-slate-400">
-              <span>ASTRONOMICAL TIDE HEIGHT ESTIMATION (24H CYCLE)</span>
-              <span id="tideCurrentLabel" class="text-sky-400">NOW: MID-EBB</span>
-            </div>
-            <div class="w-full h-16 flex items-center justify-center">
-              <svg id="tideSvg" class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 500 80">
-                <!-- Grid guide lines -->
-                <line x1="0" y1="40" x2="500" y2="40" stroke="#1e293b" stroke-dasharray="4 4" stroke-width="1"/>
-                <!-- Tide wave spline -->
-                <path id="tidePath" d="M0,40 C100,5 150,5 250,40 C350,75 400,75 500,40" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
-                <!-- Current Time Marker Dot -->
-                <circle id="tideMarker" cx="250" cy="40" r="4.5" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"/>
-              </svg>
-            </div>
-            <div class="flex justify-between text-[9px] font-mono text-slate-500">
-              <span>-12h</span>
-              <span>-6h</span>
-              <span class="text-amber-400 font-semibold">NOW</span>
-              <span>+6h</span>
-              <span>+12h</span>
-            </div>
+          <div class="w-full h-16 bg-tactical-950/80 rounded-lg p-1 border border-slate-800/80">
+            <svg id="tide-svg" class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 40">
+              <path id="tide-path" d="M 0 20 Q 25 5 50 20 T 100 20" fill="none" stroke="#00f0ff" stroke-width="1.5" />
+              <line id="tide-now-marker" x1="50" y1="0" x2="50" y2="40" stroke="#ff0055" stroke-dasharray="2 2" stroke-width="1" />
+            </svg>
           </div>
         </div>
 
-        <!-- VIEW 3: 24H SYNOPTIC HOURLY FORECAST -->
-        <div id="viewForecast" class="hidden space-y-2">
-          <div class="flex justify-between items-center text-[10px] font-mono text-slate-400">
-            <span>HOURLY PREDICTIVE MATRIX (PRECIPITATION & THERMAL)</span>
-            <span id="fcSummaryText" class="text-slate-300">CALCULATING PROJECTIONS...</span>
-          </div>
-
-          <!-- Horizontal Hourly Strip -->
-          <div id="hourlyCardsStrip" class="flex gap-2 overflow-x-auto pb-1 no-scrollbar text-center font-mono">
-            <!-- Dynamically populated hourly timeline columns -->
+        <!-- 24-Hour Meteo Matrix Strip -->
+        <div>
+          <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-2">24H Chrono Precipitation Risk</div>
+          <div id="hourly-strip" class="flex gap-2 overflow-x-auto no-scrollbar pb-1 text-center">
+            <!-- Dynamically populated hourly chips -->
           </div>
         </div>
 
       </div>
     </div>
-  </div>
 
-  <!-- INSTRUMENT CONFIGURATION / PERSONALIZATION MODAL -->
-  <div id="modalSettings" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
-    <div class="w-full max-w-md rounded-xl bg-slate-900 border border-slate-700/80 shadow-2xl p-5 space-y-4 font-mono text-xs">
+    <!-- Collapsed Master Dock (Radar Timeline & Playback Controller) -->
+    <div class="pointer-events-auto w-full max-w-4xl rounded-xl bg-tactical-900/90 backdrop-blur-xl border border-slate-800 shadow-2xl p-2.5 space-y-2">
       
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+      <!-- Top Bar of Dock: Drawer Toggle & Mode -->
+      <div class="flex items-center justify-between px-1">
         <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-          <span class="text-sm font-semibold tracking-wider text-slate-100">INSTRUMENT CALIBRATION</span>
+          <span class="px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/80 text-[10px] font-bold tracking-wider">
+            RADAR TIMELINE
+          </span>
+          <button id="toggle-drawer-btn" class="px-2.5 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-[10px] font-medium flex items-center gap-1 transition-colors">
+            <span id="drawer-btn-label">MARINE & TIDES</span>
+            <i id="drawer-btn-icon" data-lucide="chevron-up" class="w-3 h-3"></i>
+          </button>
         </div>
-        <button id="btnCloseSettings" class="p-1 rounded text-slate-400 hover:text-white transition">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
+
+        <div class="flex items-center gap-3 text-[11px]">
+          <span id="radar-timestamp" class="text-slate-200 font-semibold tabular-nums">--:--:--</span>
+          <span id="radar-relative" class="text-[10px] text-slate-400">(-- min)</span>
+          <button id="btn-speed" class="px-1.5 py-0.5 rounded bg-tactical-800 text-cyan-400 border border-slate-700 text-[10px]">1.0x</button>
+        </div>
       </div>
 
-      <!-- Settings Sections -->
-      <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-
-        <!-- Preferred Physical Units -->
-        <div class="space-y-2">
-          <label class="text-slate-400 block tracking-wider">UNIT SYSTEM STANDARDS</label>
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <span class="text-[10px] text-slate-500 block mb-1">WIND SPEED</span>
-              <select id="cfgUnitWind" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 focus:border-sky-500 outline-none">
-                <option value="kt">Knots (kt)</option>
-                <option value="kmh">Km/h</option>
-                <option value="ms">m/s</option>
-              </select>
-            </div>
-            <div>
-              <span class="text-[10px] text-slate-500 block mb-1">TEMPERATURE</span>
-              <select id="cfgUnitTemp" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 focus:border-sky-500 outline-none">
-                <option value="c">Celsius (°C)</option>
-                <option value="f">Fahrenheit (°F)</option>
-              </select>
-            </div>
-            <div>
-              <span class="text-[10px] text-slate-500 block mb-1">WAVE / SWELL</span>
-              <select id="cfgUnitWaves" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 focus:border-sky-500 outline-none">
-                <option value="m">Meters (m)</option>
-                <option value="ft">Feet (ft)</option>
-              </select>
-            </div>
-          </div>
+      <!-- Playback Scrubber & Controls -->
+      <div class="flex items-center gap-2 pt-0.5">
+        <div class="flex items-center gap-1">
+          <button id="btn-step-back" class="p-1.5 rounded-lg bg-tactical-800 hover:bg-tactical-700 text-slate-300">
+            <i data-lucide="skip-back" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="btn-play" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-1 transition-colors">
+            <i id="play-icon" data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+            <span id="play-text" class="text-[10px]">PLAY</span>
+          </button>
+          <button id="btn-step-fwd" class="p-1.5 rounded-lg bg-tactical-800 hover:bg-tactical-700 text-slate-300">
+            <i data-lucide="skip-forward" class="w-3.5 h-3.5"></i>
+          </button>
         </div>
 
-        <!-- Radar Display Opacity & Palette -->
-        <div class="space-y-2">
-          <label class="text-slate-400 block tracking-wider">RADAR OVERLAY GAIN & PALETTE</label>
-          <div class="space-y-2">
-            <div class="flex justify-between text-[11px]">
-              <span class="text-slate-400">LAYER OPACITY</span>
-              <span id="cfgOpacityVal" class="text-sky-400">80%</span>
-            </div>
-            <input id="cfgRadarOpacity" type="range" min="20" max="100" value="80" class="w-full h-1.5 bg-slate-950 rounded cursor-pointer">
-          </div>
-          <div>
-            <span class="text-[10px] text-slate-500 block mb-1">COLOR PALETTE</span>
-            <select id="cfgRadarColor" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 focus:border-sky-500 outline-none">
-              <option value="2">Universal Doppler (TITAN)</option>
-              <option value="1">RainViewer Classic (High Contrast)</option>
-              <option value="4">NEXRAD Level-III Military</option>
-              <option value="8">Dark Tactical Monochrome</option>
-            </select>
-          </div>
+        <!-- Custom Timeline Track -->
+        <div class="relative flex-1 flex items-center">
+          <input id="timeline-slider" type="range" min="0" max="12" step="1" value="12"
+            class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 focus:outline-none" />
         </div>
-
-        <!-- Startup Default Viewport Preference -->
-        <div class="space-y-2">
-          <label class="text-slate-400 block tracking-wider">APP LAUNCH VIEWPORT</label>
-          <select id="cfgBootMode" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 focus:border-sky-500 outline-none">
-            <option value="auto-gps">Automatic Device Geolocation (GPS)</option>
-            <option value="last-pos">Restore Last Active Map Viewport</option>
-            <option value="home-spot">Fixed Regional Home (Koh Phangan)</option>
-          </select>
-        </div>
-
-        <!-- Pinned Spots Management -->
-        <div class="space-y-2 pt-2 border-t border-slate-800">
-          <div class="flex justify-between items-center">
-            <label class="text-slate-400 tracking-wider">SAVED WAYPOINTS</label>
-            <button id="btnClearCustomPins" class="text-[10px] text-rose-400 hover:underline">Reset To Defaults</button>
-          </div>
-          <div id="settingsPinsList" class="space-y-1 max-h-28 overflow-y-auto">
-            <!-- Injected custom pinned spots -->
-          </div>
-        </div>
-
       </div>
 
-      <!-- Modal Footer -->
-      <div class="pt-3 border-t border-slate-800 flex justify-end">
-        <button id="btnSaveSettings" class="px-4 py-2 rounded bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold transition active:scale-95">
-          APPLY CONFIGURATION
-        </button>
+      <!-- Precipitation Reflectivity Scale (dBZ Ramp) -->
+      <div class="pt-1 flex items-center justify-between text-[9px] text-slate-400 px-1 border-t border-slate-800/60">
+        <span class="tracking-widest uppercase text-[8px]">Precipitation Reflectivity (dBZ)</span>
+        <div class="flex items-center gap-1">
+          <span class="text-[8px] text-slate-400">LIGHT DRIZZLE</span>
+          <div class="h-1.5 w-28 rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 via-rose-500 to-fuchsia-600"></div>
+          <span class="text-[8px] text-slate-400">HAIL/SEVERE</span>
+        </div>
       </div>
 
     </div>
+  </footer>
+
+  <!-- Settings & Customization Modal -->
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-xl bg-tactical-900 border border-slate-800 p-5 space-y-4 shadow-2xl text-slate-200">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+          <span class="font-bold text-sm">TELEMETRY & DISPLAY CONFIG</span>
+        </div>
+        <button id="btn-close-settings" class="p-1 rounded hover:bg-tactical-800 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Unit Configurations -->
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Wind Velocity Unit</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button data-unit-wind="kt" class="unit-wind-btn p-1.5 rounded bg-tactical-800 border border-cyan-500 text-cyan-400 text-center font-bold">KNOTS (kt)</button>
+            <button data-unit-wind="kmh" class="unit-wind-btn p-1.5 rounded bg-tactical-850 border border-slate-800 text-slate-400 text-center">KM/H</button>
+            <button data-unit-wind="ms" class="unit-wind-btn p-1.5 rounded bg-tactical-850 border border-slate-800 text-slate-400 text-center">M/S</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Swell & Wave Height</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-unit-wave="m" class="unit-wave-btn p-1.5 rounded bg-tactical-800 border border-cyan-500 text-cyan-400 text-center font-bold">METERS (m)</button>
+            <button data-unit-wave="ft" class="unit-wave-btn p-1.5 rounded bg-tactical-850 border border-slate-800 text-slate-400 text-center">FEET (ft)</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Radar Layer Gain / Opacity</label>
+          <input id="slider-radar-opacity" type="range" min="0.2" max="1" step="0.05" value="0.8" class="w-full accent-cyan-400" />
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end">
+        <button id="btn-save-settings" class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold">APPLY PREFERENCES</button>
+      </div>
+    </div>
   </div>
 
-  <!-- APPLICATION LOGIC -->
+  <!-- APPLICATION LOGIC ENGINE -->
   <script>
-    /**
-     * AERO-RADAR Tactical Marine & Meteo Engine
-     * Self-contained vanilla JS client implementation.
-     */
-    (function () {
-      'use strict';
+    lucide.createIcons();
 
-      // --- 1. DEFAULT CONSTANTS & STATE ---
-      const DEFAULT_WAYPOINTS = [
-        { id: 'phangan', name: 'Koh Phangan', lat: 9.7319, lng: 99.9856, zoom: 11 },
-        { id: 'samui', name: 'Koh Samui', lat: 9.5120, lng: 100.0136, zoom: 11 },
-        { id: 'tao', name: 'Koh Tao', lat: 10.0956, lng: 99.8404, zoom: 12 },
-        { id: 'phuket', name: 'Phuket Marine', lat: 7.8804, lng: 98.3923, zoom: 10 },
-        { id: 'bali', name: 'Bali Strait', lat: -8.4095, lng: 115.1889, zoom: 10 },
-        { id: 'riviera', name: 'French Riviera', lat: 43.5528, lng: 7.0174, zoom: 11 }
-      ];
+    // 1. CONFIGURATION & PERSISTENT STATE
+    const CONFIG = {
+      defaultCenter: [100.0, 9.7], // Gulf of Thailand (Phangan / Samui)
+      defaultZoom: 10,
+      mapStyle: 'https://tiles.openfreemap.org/styles/dark' // 100% Free, Keyless Vector Tiles
+    };
 
-      // Configuration schema with local storage persistence
-      let userConfig = {
-        units: { wind: 'kt', temp: 'c', waves: 'm' },
-        radarOpacity: 0.8,
-        radarColor: '2',
-        bootMode: 'auto-gps',
-        lastPos: { lat: 9.7319, lng: 99.9856, zoom: 11 },
-        customWaypoints: []
-      };
+    let userPrefs = {
+      windUnit: 'kt',
+      waveUnit: 'm',
+      radarOpacity: 0.8
+    };
 
-      // Load saved preferences if available
+    // Load persisted settings
+    const savedPrefs = localStorage.getItem('radar_user_prefs');
+    if (savedPrefs) {
+      try { userPrefs = { ...userPrefs, ...JSON.parse(savedPrefs) }; } catch(e){}
+    }
+
+    // 2. CLOCK RUNNER
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('utc-clock').textContent = now.toISOString().substring(11, 19) + ' UTC';
+    }, 1000);
+
+    // 3. MAPBOX / MAPLIBRE ENGINE
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: CONFIG.mapStyle,
+      center: CONFIG.defaultCenter,
+      zoom: CONFIG.defaultZoom,
+      attributionControl: false
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: true }), 'top-left');
+
+    let radarFrames = [];
+    let radarHost = '';
+    let currentFrameIdx = 0;
+    let isPlaying = false;
+    let playInterval = null;
+    let playbackSpeedMs = 800;
+
+    // 4. RADAR METADATA SYNC (RainViewer API)
+    async function syncRadarEngine() {
       try {
-        const saved = localStorage.getItem('aeroradar_cfg');
-        if (saved) {
-          userConfig = Object.assign(userConfig, JSON.parse(saved));
-        }
-      } catch (e) {
-        console.warn('Storage read restricted', e);
-      }
-
-      // Live App State
-      let map = null;
-      let gpsMarker = null;
-      let radarLayers = []; // TileLayer cache
-      let radarFrames = []; // RainViewer timestamp metadata
-      let currentFrameIndex = 0;
-      let isPlaying = false;
-      let playInterval = null;
-      let playbackSpeedMs = 700;
-      let dockExpanded = true;
-      let currentTab = 'radar';
-      let fetchMeteoDebounce = null;
-      let activeCenterCoords = { lat: 9.7319, lng: 99.9856 };
-
-      // DOM Cache
-      const dom = {
-        pillsContainer: document.getElementById('pillsContainer'),
-        btnPinCurrentSpot: document.getElementById('btnPinCurrentSpot'),
-        btnGeoLocate: document.getElementById('btnGeoLocate'),
-        btnRefresh: document.getElementById('btnRefresh'),
-        refreshIcon: document.getElementById('refreshIcon'),
-        btnOpenSettings: document.getElementById('btnOpenSettings'),
-        btnCloseSettings: document.getElementById('btnCloseSettings'),
-        btnSaveSettings: document.getElementById('btnSaveSettings'),
-        modalSettings: document.getElementById('modalSettings'),
-        settingsPinsList: document.getElementById('settingsPinsList'),
-        btnClearCustomPins: document.getElementById('btnClearCustomPins'),
+        const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+        const data = await res.json();
+        radarHost = data.host;
         
-        // Config inputs
-        cfgUnitWind: document.getElementById('cfgUnitWind'),
-        cfgUnitTemp: document.getElementById('cfgUnitTemp'),
-        cfgUnitWaves: document.getElementById('cfgUnitWaves'),
-        cfgRadarOpacity: document.getElementById('cfgRadarOpacity'),
-        cfgOpacityVal: document.getElementById('cfgOpacityVal'),
-        cfgRadarColor: document.getElementById('cfgRadarColor'),
-        cfgBootMode: document.getElementById('cfgBootMode'),
-
-        // Telemetry readout
-        sysTimeUtc: document.getElementById('sysTimeUtc'),
-        telCoords: document.getElementById('telCoords'),
-        telTargetName: document.getElementById('telTargetName'),
-        telPressure: document.getElementById('telPressure'),
-        telWave: document.getElementById('telWave'),
-        telWind: document.getElementById('telWind'),
-        windArrow: document.getElementById('windArrow'),
-
-        // Dock components
-        dockChevron: document.getElementById('dockChevron'),
-        btnToggleDock: document.getElementById('btnToggleDock'),
-        dockBody: document.getElementById('dockBody'),
-        tabRadar: document.getElementById('tabRadar'),
-        tabMarine: document.getElementById('tabMarine'),
-        tabForecast: document.getElementById('tabForecast'),
-        viewRadar: document.getElementById('viewRadar'),
-        viewMarine: document.getElementById('viewMarine'),
-        viewForecast: document.getElementById('viewForecast'),
-
-        // Radar Player
-        btnPlayPause: document.getElementById('btnPlayPause'),
-        playIcon: document.getElementById('playIcon'),
-        pauseIcon: document.getElementById('pauseIcon'),
-        playBtnText: document.getElementById('playBtnText'),
-        btnStepBack: document.getElementById('btnStepBack'),
-        btnStepForward: document.getElementById('btnStepForward'),
-        btnSpeed: document.getElementById('btnSpeed'),
-        timelineSlider: document.getElementById('timelineSlider'),
-        frameTimestamp: document.getElementById('frameTimestamp'),
-        frameTypeLabel: document.getElementById('frameTypeLabel'),
-
-        // Marine & Outlook
-        marineSwellVal: document.getElementById('marineSwellVal'),
-        marineSwellDir: document.getElementById('marineSwellDir'),
-        marineTempWater: document.getElementById('marineTempWater'),
-        marineTideState: document.getElementById('marineTideState'),
-        hourlyCardsStrip: document.getElementById('hourlyCardsStrip'),
-        fcSummaryText: document.getElementById('fcSummaryText'),
-        tideMarker: document.getElementById('tideMarker')
-      };
-
-      // --- 2. MAP INITIALIZATION ---
-      function initMap() {
-        // Determine initial start center
-        let startCenter = [9.7319, 99.9856];
-        let startZoom = 11;
-
-        if (userConfig.bootMode === 'last-pos' && userConfig.lastPos) {
-          startCenter = [userConfig.lastPos.lat, userConfig.lastPos.lng];
-          startZoom = userConfig.lastPos.zoom || 11;
-        }
-
-        map = L.map('map', {
-          center: startCenter,
-          zoom: startZoom,
-          zoomControl: false,
-          attributionControl: true
-        });
-
-        // Top-left compact tactical zoom control
-        L.control.zoom({ position: 'topleft' }).addTo(map);
-
-        // High contrast Tactical Basemap: CartoDB Dark Matter
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-          attribution: '&copy; <a href="https://carto.com/">CARTO</a> | &copy; <a href="https://rainviewer.com/">RainViewer</a>',
-          subdomains: 'abcd',
-          maxZoom: 19
-        }).addTo(map);
-
-        // Track map position changes
-        map.on('move', () => {
-          const c = map.getCenter();
-          activeCenterCoords = { lat: c.lat, lng: c.lng };
-          dom.telCoords.innerText = `${Math.abs(c.lat).toFixed(2)}°${c.lat >= 0 ? 'N' : 'S'}, ${Math.abs(c.lng).toFixed(2)}°${c.lng >= 0 ? 'E' : 'W'}`;
-        });
-
-        map.on('moveend', () => {
-          const c = map.getCenter();
-          userConfig.lastPos = { lat: c.lat, lng: c.lng, zoom: map.getZoom() };
-          saveUserConfig();
-          debounceFetchMeteo(c.lat, c.lng);
-        });
-
-        // Click to inspect specific ocean/land coordinate
-        map.on('click', (e) => {
-          debounceFetchMeteo(e.latlng.lat, e.latlng.lng);
-        });
-
-        // Trigger Auto-GPS if opted
-        if (userConfig.bootMode === 'auto-gps') {
-          triggerGeolocation(false);
-        } else {
-          debounceFetchMeteo(startCenter[0], startCenter[1]);
-        }
-      }
-
-      // --- 3. RAINVIEWER DOPPLER RADAR INTEGRATION ---
-      async function loadRainViewerRadar() {
-        dom.frameTimestamp.innerText = 'PULLING TACTICAL RADAR FEEDS...';
-        dom.refreshIcon.classList.add('animate-spin');
-
-        try {
-          const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
-          if (!res.ok) throw new Error('RainViewer endpoint unavailable');
-          const data = await res.json();
-
-          // Clear previous layers
-          radarLayers.forEach(layer => map.removeLayer(layer));
-          radarLayers = [];
-
-          // RainViewer returns past ~10-13 frames + nowcasts
-          const pastFrames = data.radar && data.radar.past ? data.radar.past : [];
-          const nowcastFrames = data.radar && data.radar.nowcast ? data.radar.nowcast : [];
-          radarFrames = [...pastFrames, ...nowcastFrames];
-
-          if (radarFrames.length === 0) {
-            dom.frameTimestamp.innerText = 'NO RADAR FRAMES RETURNED';
-            dom.refreshIcon.classList.remove('animate-spin');
-            return;
-          }
-
-          // Pre-construct tile layers with opacity
-          const host = data.host;
-          const colorCode = userConfig.radarColor || '2';
-          
-          radarLayers = radarFrames.map((frame) => {
-            // Path structure: {host}{path}/256/{z}/{x}/{y}/{color}/1_1.png
-            const tileUrl = `${host}${frame.path}/256/{z}/{x}/{y}/${colorCode}/1_1.png`;
-            return L.tileLayer(tileUrl, {
-              tileSize: 256,
-              opacity: 0,
-              zIndex: 100,
-              maxZoom: 18
-            });
-          });
-
-          // Add all layers to map in dormant state
-          radarLayers.forEach(l => l.addTo(map));
-
-          // Configure slider bounds
-          dom.timelineSlider.min = '0';
-          dom.timelineSlider.max = (radarFrames.length - 1).toString();
-          
-          // Default to latest ground truth observation frame
-          currentFrameIndex = Math.max(0, pastFrames.length - 1);
-          dom.timelineSlider.value = currentFrameIndex.toString();
-          
-          displayFrame(currentFrameIndex);
-          dom.refreshIcon.classList.remove('animate-spin');
-
-        } catch (err) {
-          console.error('Radar Load Error:', err);
-          dom.frameTimestamp.innerText = 'RADAR SYNC TIMEOUT (RETRY)';
-          dom.refreshIcon.classList.remove('animate-spin');
-        }
-      }
-
-      function displayFrame(index) {
-        if (!radarLayers || radarLayers.length === 0) return;
-        index = Math.max(0, Math.min(index, radarLayers.length - 1));
-
-        // Adjust opacities
-        const targetOpacity = userConfig.radarOpacity || 0.8;
-        radarLayers.forEach((layer, i) => {
-          if (i === index) {
-            layer.setOpacity(targetOpacity);
-          } else {
-            layer.setOpacity(0);
-          }
-        });
-
-        // Update timeline status readout
-        const frame = radarFrames[index];
-        if (frame) {
-          const date = new Date(frame.time * 1000);
-          const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          const isNowcast = index >= (radarFrames.length - (radarFrames.length > 10 ? 3 : 0));
-          
-          dom.frameTimestamp.innerText = `${timeString} (${Math.round((Date.now() - date.getTime()) / 60000)}m ago)`;
-          dom.frameTypeLabel.innerText = isNowcast ? 'PREDICTIVE NOWCAST (+VECTOR)' : 'DOPPLER SWEEP (OBSERVED)';
-          dom.frameTypeLabel.className = isNowcast ? 'text-amber-400 font-semibold text-[10px]' : 'text-slate-400 text-[10px]';
-        }
-        dom.timelineSlider.value = index.toString();
-      }
-
-      function togglePlayback() {
-        isPlaying = !isPlaying;
-        if (isPlaying) {
-          dom.playIcon.classList.add('hidden');
-          dom.pauseIcon.classList.remove('hidden');
-          dom.playBtnText.innerText = 'PAUSE';
-          
-          playInterval = setInterval(() => {
-            currentFrameIndex = (currentFrameIndex + 1) % radarLayers.length;
-            displayFrame(currentFrameIndex);
-          }, playbackSpeedMs);
-        } else {
-          stopPlayback();
-        }
-      }
-
-      function stopPlayback() {
-        isPlaying = false;
-        if (playInterval) clearInterval(playInterval);
-        dom.playIcon.classList.remove('hidden');
-        dom.pauseIcon.classList.add('hidden');
-        dom.playBtnText.innerText = 'PLAY';
-      }
-
-      // --- 4. OPEN-METEO GLOBAL MARINE & ATMOSPHERIC TELEMETRY ---
-      function debounceFetchMeteo(lat, lng) {
-        if (fetchMeteoDebounce) clearTimeout(fetchMeteoDebounce);
-        fetchMeteoDebounce = setTimeout(() => {
-          fetchMeteoAndMarine(lat, lng);
-        }, 350);
-      }
-
-      async function fetchMeteoAndMarine(lat, lng) {
-        // Reverse Geocoding via Nominatim Open API (lightweight lookup)
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
-          .then(r => r.json())
-          .then(data => {
-            const addr = data.address || {};
-            const place = addr.island || addr.village || addr.town || addr.city || addr.county || 'Open Waters';
-            dom.telTargetName.innerText = place;
-          })
-          .catch(() => {
-            dom.telTargetName.innerText = 'Target Grid';
-          });
-
-        // 1. Atmosphere / Weather Endpoint
-        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m&hourly=precipitation_probability,precipitation,temperature_2m,wind_speed_10m&forecast_days=2&timezone=auto`;
+        // Combine past sweeps + forecast nowcasts
+        radarFrames = [...(data.radar.past || []), ...(data.radar.nowcast || [])];
         
-        // 2. Oceanic Swell / Wave Endpoint
-        const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,wave_period&timezone=auto`;
+        const slider = document.getElementById('timeline-slider');
+        slider.max = radarFrames.length - 1;
+        currentFrameIdx = (data.radar.past || []).length - 1; // Default to latest observed frame
+        slider.value = currentFrameIdx;
 
-        try {
-          const [weatherRes, marineRes] = await Promise.all([
-            fetch(weatherUrl),
-            fetch(marineUrl).catch(() => null)
-          ]);
+        updateRadarFrame();
+      } catch (err) {
+        console.error('Radar data fetch failed:', err);
+      }
+    }
 
-          if (!weatherRes.ok) throw new Error('Weather data fetch failure');
-          const wData = await weatherRes.json();
-          let mData = null;
-          if (marineRes && marineRes.ok) {
-            mData = await marineRes.json();
-          }
+    function updateRadarFrame() {
+      if (!radarFrames.length) return;
+      const frame = radarFrames[currentFrameIdx];
+      const tileUrl = `${radarHost}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`;
 
-          renderTelemetryReadouts(wData, mData);
-        } catch (err) {
-          console.warn('Telemetry fetch note:', err);
-        }
+      if (map.getSource('rain-radar-source')) {
+        map.removeLayer('rain-radar-layer');
+        map.removeSource('rain-radar-source');
       }
 
-      function renderTelemetryReadouts(weather, marine) {
-        const cur = weather.current || {};
-        
-        // Pressure
-        if (cur.surface_pressure) {
-          dom.telPressure.innerText = `${Math.round(cur.surface_pressure)} hPa`;
-        }
-
-        // Wind Speed & Direction with Rotating Compass
-        if (cur.wind_speed_10m !== undefined) {
-          let speed = cur.wind_speed_10m;
-          let unitLabel = 'km/h';
-          if (userConfig.units.wind === 'kt') {
-            speed = speed * 0.539957;
-            unitLabel = 'kt';
-          } else if (userConfig.units.wind === 'ms') {
-            speed = speed / 3.6;
-            unitLabel = 'm/s';
-          }
-          dom.telWind.innerText = `${Math.round(speed)} ${unitLabel}`;
-        }
-        if (cur.wind_direction_10m !== undefined) {
-          dom.windArrow.style.transform = `rotate(${cur.wind_direction_10m}deg)`;
-        }
-
-        // Marine / Swell
-        let hasSwell = false;
-        if (marine && marine.current && marine.current.wave_height !== null && marine.current.wave_height !== undefined) {
-          let wave = marine.current.wave_height;
-          let waveUnit = 'm';
-          if (userConfig.units.waves === 'ft') {
-            wave = wave * 3.28084;
-            waveUnit = 'ft';
-          }
-          dom.telWave.innerText = `${wave.toFixed(1)} ${waveUnit}`;
-          dom.marineSwellVal.innerText = `${wave.toFixed(1)} ${waveUnit}`;
-          const period = marine.current.wave_period ? `${marine.current.wave_period}s` : '--';
-          dom.marineSwellDir.innerText = `PERIOD: ${period}`;
-          hasSwell = true;
-        } else {
-          dom.telWave.innerText = 'CALM / N/A';
-          dom.marineSwellVal.innerText = 'PROTECTED';
-          dom.marineSwellDir.innerText = 'PERIOD: N/A';
-        }
-
-        // Surface / Air Temp
-        let temp = cur.temperature_2m;
-        let tempUnit = '°C';
-        if (userConfig.units.temp === 'f') {
-          temp = (temp * 9/5) + 32;
-          tempUnit = '°F';
-        }
-        dom.marineTempWater.innerText = `${Math.round(temp)} ${tempUnit}`;
-
-        // Astronomical Tide Estimation Wave
-        simulateTideState();
-
-        // Hourly Projection Cards
-        renderHourlyOutlook(weather.hourly);
-      }
-
-      function simulateTideState() {
-        // Lunar/Harmonic approximation calculation for display based on timestamp
-        const now = new Date();
-        const cycleHours = 12.42; // Lunar semi-diurnal tidal cycle
-        const progress = ((now.getHours() + now.getMinutes() / 60) % cycleHours) / cycleHours;
-        const tideRadian = progress * 2 * Math.PI;
-        const tideSin = Math.sin(tideRadian);
-
-        let tideText = 'MID TIDE';
-        if (tideSin > 0.6) tideText = 'HIGH TIDE (+FLOOD)';
-        else if (tideSin < -0.6) tideText = 'LOW TIDE (-EBB)';
-        else if (Math.cos(tideRadian) > 0) tideText = 'RISING TIDE';
-        else tideText = 'FALLING TIDE';
-
-        dom.marineTideState.innerText = tideText;
-        
-        // Adjust SVG marker indicator
-        const markerY = 40 - (tideSin * 28);
-        dom.tideMarker.setAttribute('cy', markerY.toFixed(1));
-      }
-
-      function renderHourlyOutlook(hourly) {
-        if (!hourly || !hourly.time) return;
-        dom.hourlyCardsStrip.innerHTML = '';
-        
-        const nowHour = new Date().getHours();
-        let rainRiskCount = 0;
-
-        for (let i = 0; i < 24; i++) {
-          const t = new Date(hourly.time[i]);
-          const h = t.getHours();
-          const pop = hourly.precipitation_probability ? hourly.precipitation_probability[i] : 0;
-          let temp = hourly.temperature_2m[i];
-          if (userConfig.units.temp === 'f') temp = (temp * 9/5) + 32;
-
-          if (pop >= 40) rainRiskCount++;
-
-          const card = document.createElement('div');
-          card.className = `flex flex-col items-center justify-between p-2 rounded min-w-[72px] shrink-0 border ${h === nowHour ? 'bg-sky-950/60 border-sky-500/60' : 'bg-slate-950/40 border-slate-800'}`;
-          
-          card.innerHTML = `
-            <span class="text-[10px] text-slate-400">${h.toString().padStart(2, '0')}:00</span>
-            <div class="my-1">
-              <span class="text-xs font-bold ${pop > 50 ? 'text-rose-400' : pop > 20 ? 'text-amber-400' : 'text-slate-200'}">${Math.round(temp)}°</span>
-            </div>
-            <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden my-1">
-              <div class="bg-sky-400 h-full" style="width: ${pop}%"></div>
-            </div>
-            <span class="text-[9px] ${pop > 50 ? 'text-sky-400 font-bold' : 'text-slate-500'}">${pop}% RAIN</span>
-          `;
-          dom.hourlyCardsStrip.appendChild(card);
-        }
-
-        dom.fcSummaryText.innerText = rainRiskCount > 0 
-          ? `CELL WARNING: ${rainRiskCount} CONVECTIVE HOURLY WINDOWS DETECTED` 
-          : 'CLEAR SKY / MINIMAL PRECIPITATION THREAT';
-      }
-
-      // --- 5. GPS USER GEONAVIGATION ---
-      function triggerGeolocation(fly = true) {
-        if (!navigator.geolocation) {
-          alertModal('Geolocation not supported by this browser engine.');
-          return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-
-            // Remove existing marker
-            if (gpsMarker) map.removeLayer(gpsMarker);
-
-            // Create tactical pulsing radar beacon icon
-            const beaconIcon = L.divIcon({
-              className: 'custom-gps-beacon',
-              html: `
-                <div class="gps-beacon-container">
-                  <div class="gps-beacon-pulse"></div>
-                  <div class="gps-beacon-dot"></div>
-                </div>
-              `,
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
-            });
-
-            gpsMarker = L.marker([lat, lng], { icon: beaconIcon, zIndexOffset: 1000 }).addTo(map);
-
-            if (fly) {
-              map.flyTo([lat, lng], 12, { duration: 1.5 });
-            }
-            debounceFetchMeteo(lat, lng);
-          },
-          (err) => {
-            console.warn('Geolocation denied or timed out:', err.message);
-          },
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
-      }
-
-      // --- 6. TOP BAR WAYPOINTS & PILLS ---
-      function renderWaypointPills() {
-        dom.pillsContainer.innerHTML = '';
-
-        // Combine system defaults with custom pinned spots
-        const allWaypoints = [...DEFAULT_WAYPOINTS, ...(userConfig.customWaypoints || [])];
-
-        allWaypoints.forEach(wp => {
-          const pill = document.createElement('button');
-          pill.className = 'px-3 py-1 rounded-md bg-slate-900/85 hover:bg-slate-800 text-slate-300 hover:text-sky-400 border border-slate-700/60 backdrop-blur-md text-xs font-mono transition shrink-0 flex items-center gap-1.5 active:scale-95';
-          pill.innerHTML = `
-            <span class="w-1.5 h-1.5 rounded-full ${wp.isCustom ? 'bg-amber-400' : 'bg-sky-400'}"></span>
-            <span>${wp.name.toUpperCase()}</span>
-          `;
-
-          pill.addEventListener('click', () => {
-            map.flyTo([wp.lat, wp.lng], wp.zoom || 11, { duration: 1.2 });
-            debounceFetchMeteo(wp.lat, wp.lng);
-          });
-
-          dom.pillsContainer.appendChild(pill);
-        });
-      }
-
-      function pinCurrentLocation() {
-        const center = map.getCenter();
-        const pinName = prompt('Waypoint Tag Name:', dom.telTargetName.innerText || 'Island Station');
-        if (!pinName) return;
-
-        const newWp = {
-          id: 'custom_' + Date.now(),
-          name: pinName.trim(),
-          lat: parseFloat(center.lat.toFixed(4)),
-          lng: parseFloat(center.lng.toFixed(4)),
-          zoom: map.getZoom(),
-          isCustom: true
-        };
-
-        if (!userConfig.customWaypoints) userConfig.customWaypoints = [];
-        userConfig.customWaypoints.push(newWp);
-        saveUserConfig();
-        renderWaypointPills();
-      }
-
-      // --- 7. PERSONALIZATION & SETTINGS ---
-      function openSettings() {
-        // Populate inputs
-        dom.cfgUnitWind.value = userConfig.units.wind;
-        dom.cfgUnitTemp.value = userConfig.units.temp;
-        dom.cfgUnitWaves.value = userConfig.units.waves;
-        dom.cfgRadarOpacity.value = Math.round(userConfig.radarOpacity * 100);
-        dom.cfgOpacityVal.innerText = `${Math.round(userConfig.radarOpacity * 100)}%`;
-        dom.cfgRadarColor.value = userConfig.radarColor;
-        dom.cfgBootMode.value = userConfig.bootMode;
-
-        // Populate Custom Pins list
-        renderSettingsPinsList();
-
-        dom.modalSettings.classList.remove('hidden');
-        setTimeout(() => dom.modalSettings.classList.remove('opacity-0'), 10);
-      }
-
-      function closeSettings() {
-        dom.modalSettings.classList.add('opacity-0');
-        setTimeout(() => dom.modalSettings.classList.add('hidden'), 200);
-      }
-
-      function renderSettingsPinsList() {
-        dom.settingsPinsList.innerHTML = '';
-        const pins = userConfig.customWaypoints || [];
-        if (pins.length === 0) {
-          dom.settingsPinsList.innerHTML = '<span class="text-slate-500 text-[10px]">No custom waypoints pinned.</span>';
-          return;
-        }
-
-        pins.forEach((p, idx) => {
-          const row = document.createElement('div');
-          row.className = 'flex justify-between items-center bg-slate-950 p-1.5 rounded border border-slate-800';
-          row.innerHTML = `
-            <span class="text-slate-300 truncate max-w-[180px]">${p.name} (${p.lat.toFixed(2)}, ${p.lng.toFixed(2)})</span>
-            <button data-idx="${idx}" class="btn-del-pin text-rose-400 hover:text-rose-300 text-[10px] px-1.5 py-0.5 rounded bg-rose-950/40">DEL</button>
-          `;
-          dom.settingsPinsList.appendChild(row);
-        });
-
-        dom.settingsPinsList.querySelectorAll('.btn-del-pin').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const i = parseInt(e.target.getAttribute('data-idx'));
-            userConfig.customWaypoints.splice(i, 1);
-            saveUserConfig();
-            renderSettingsPinsList();
-            renderWaypointPills();
-          });
-        });
-      }
-
-      function saveAndApplySettings() {
-        userConfig.units.wind = dom.cfgUnitWind.value;
-        userConfig.units.temp = dom.cfgUnitTemp.value;
-        userConfig.units.waves = dom.cfgUnitWaves.value;
-        userConfig.radarOpacity = parseInt(dom.cfgRadarOpacity.value) / 100;
-        
-        const oldColor = userConfig.radarColor;
-        userConfig.radarColor = dom.cfgRadarColor.value;
-        userConfig.bootMode = dom.cfgBootMode.value;
-
-        saveUserConfig();
-        closeSettings();
-
-        // Apply updated opacity immediately
-        if (radarLayers[currentFrameIndex]) {
-          radarLayers[currentFrameIndex].setOpacity(userConfig.radarOpacity);
-        }
-
-        // Re-pull radar if color scheme was modified
-        if (oldColor !== userConfig.radarColor) {
-          loadRainViewerRadar();
-        }
-
-        // Re-render telemetry with new units
-        const c = map.getCenter();
-        debounceFetchMeteo(c.lat, c.lng);
-      }
-
-      function saveUserConfig() {
-        try {
-          localStorage.setItem('aeroradar_cfg', JSON.stringify(userConfig));
-        } catch (e) {
-          console.warn('Storage write failed', e);
-        }
-      }
-
-      // --- 8. UI TAB SWITCHER & DOCK EXPANSION ---
-      function setupTabs() {
-        const tabs = [
-          { btn: dom.tabRadar, view: dom.viewRadar, key: 'radar' },
-          { btn: dom.tabMarine, view: dom.viewMarine, key: 'marine' },
-          { btn: dom.tabForecast, view: dom.viewForecast, key: 'forecast' }
-        ];
-
-        tabs.forEach(t => {
-          t.btn.addEventListener('click', () => {
-            tabs.forEach(o => {
-              o.btn.classList.remove('bg-slate-800', 'text-sky-400', 'border', 'border-slate-700/50');
-              o.btn.classList.add('text-slate-400');
-              o.view.classList.add('hidden');
-            });
-            t.btn.classList.add('bg-slate-800', 'text-sky-400', 'border', 'border-slate-700/50');
-            t.btn.classList.remove('text-slate-400');
-            t.view.classList.remove('hidden');
-            currentTab = t.key;
-          });
-        });
-
-        // Dock minimize toggle
-        dom.btnToggleDock.addEventListener('click', () => {
-          dockExpanded = !dockExpanded;
-          if (dockExpanded) {
-            dom.dockBody.classList.remove('hidden');
-            dom.dockChevron.style.transform = 'rotate(0deg)';
-          } else {
-            dom.dockBody.classList.add('hidden');
-            dom.dockChevron.style.transform = 'rotate(180deg)';
-          }
-        });
-      }
-
-      // --- 9. EVENT LISTENERS & CLOCK ---
-      function attachEvents() {
-        // Timeline slider
-        dom.timelineSlider.addEventListener('input', (e) => {
-          stopPlayback();
-          currentFrameIndex = parseInt(e.target.value);
-          displayFrame(currentFrameIndex);
-        });
-
-        dom.btnPlayPause.addEventListener('click', togglePlayback);
-
-        dom.btnStepBack.addEventListener('click', () => {
-          stopPlayback();
-          currentFrameIndex = (currentFrameIndex - 1 + radarLayers.length) % radarLayers.length;
-          displayFrame(currentFrameIndex);
-        });
-
-        dom.btnStepForward.addEventListener('click', () => {
-          stopPlayback();
-          currentFrameIndex = (currentFrameIndex + 1) % radarLayers.length;
-          displayFrame(currentFrameIndex);
-        });
-
-        dom.btnSpeed.addEventListener('click', () => {
-          if (playbackSpeedMs === 700) {
-            playbackSpeedMs = 400;
-            dom.btnSpeed.innerText = '1.7x';
-          } else if (playbackSpeedMs === 400) {
-            playbackSpeedMs = 250;
-            dom.btnSpeed.innerText = '2.5x';
-          } else {
-            playbackSpeedMs = 700;
-            dom.btnSpeed.innerText = '1.0x';
-          }
-          if (isPlaying) {
-            togglePlayback();
-            togglePlayback();
-          }
-        });
-
-        dom.cfgRadarOpacity.addEventListener('input', (e) => {
-          dom.cfgOpacityVal.innerText = `${e.target.value}%`;
-        });
-
-        dom.btnRefresh.addEventListener('click', () => {
-          loadRainViewerRadar();
-          const c = map.getCenter();
-          debounceFetchMeteo(c.lat, c.lng);
-        });
-
-        dom.btnGeoLocate.addEventListener('click', () => triggerGeolocation(true));
-        dom.btnPinCurrentSpot.addEventListener('click', pinCurrentLocation);
-        dom.btnOpenSettings.addEventListener('click', openSettings);
-        dom.btnCloseSettings.addEventListener('click', closeSettings);
-        dom.btnSaveSettings.addEventListener('click', saveAndApplySettings);
-
-        dom.btnClearCustomPins.addEventListener('click', () => {
-          if (confirm('Clear all custom pinned locations?')) {
-            userConfig.customWaypoints = [];
-            saveUserConfig();
-            renderSettingsPinsList();
-            renderWaypointPills();
-          }
-        });
-
-        // UTC Clock updater
-        setInterval(() => {
-          const now = new Date();
-          dom.sysTimeUtc.innerText = now.toISOString().substring(11, 19) + ' UTC';
-        }, 1000);
-      }
-
-      // --- 10. SYSTEM BOOTSTRAP ---
-      window.addEventListener('DOMContentLoaded', () => {
-        initMap();
-        renderWaypointPills();
-        setupTabs();
-        attachEvents();
-        loadRainViewerRadar();
-
-        // Auto-refresh radar every 5 minutes to stay synchronized with satellite & radar passes
-        setInterval(loadRainViewerRadar, 5 * 60 * 1000);
+      map.addSource('rain-radar-source', {
+        type: 'raster',
+        tiles: [tileUrl],
+        tileSize: 256
       });
 
-    })();
+      map.addLayer({
+        id: 'rain-radar-layer',
+        type: 'raster',
+        source: 'rain-radar-source',
+        paint: {
+          'raster-opacity': userPrefs.radarOpacity,
+          'raster-fade-duration': 0
+        }
+      });
+
+      // Update UI Time Readouts
+      const frameDate = new Date(frame.time * 1000);
+      document.getElementById('radar-timestamp').textContent = frameDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const diffMins = Math.round((Date.now() - (frame.time * 1000)) / 60000);
+      const relLabel = diffMins > 0 ? `(-${diffMins}m ago)` : `(+${Math.abs(diffMins)}m forecast)`;
+      document.getElementById('radar-relative').textContent = relLabel;
+    }
+
+    // 5. PLAYBACK CONTROLLER
+    const btnPlay = document.getElementById('btn-play');
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        document.getElementById('play-icon').setAttribute('data-lucide', 'pause');
+        document.getElementById('play-text').textContent = 'PAUSE';
+        playInterval = setInterval(() => {
+          currentFrameIdx = (currentFrameIdx + 1) % radarFrames.length;
+          document.getElementById('timeline-slider').value = currentFrameIdx;
+          updateRadarFrame();
+        }, playbackSpeedMs);
+      } else {
+        document.getElementById('play-icon').setAttribute('data-lucide', 'play');
+        document.getElementById('play-text').textContent = 'PLAY';
+        clearInterval(playInterval);
+      }
+      lucide.createIcons();
+    }
+
+    btnPlay.addEventListener('click', togglePlay);
+    document.getElementById('timeline-slider').addEventListener('input', (e) => {
+      currentFrameIdx = parseInt(e.target.value);
+      updateRadarFrame();
+    });
+
+    document.getElementById('btn-step-fwd').addEventListener('click', () => {
+      if (currentFrameIdx < radarFrames.length - 1) {
+        currentFrameIdx++;
+        document.getElementById('timeline-slider').value = currentFrameIdx;
+        updateRadarFrame();
+      }
+    });
+
+    document.getElementById('btn-step-back').addEventListener('click', () => {
+      if (currentFrameIdx > 0) {
+        currentFrameIdx--;
+        document.getElementById('timeline-slider').value = currentFrameIdx;
+        updateRadarFrame();
+      }
+    });
+
+    // 6. MARINE & TELEMETRY SYNCHRONIZATION (Open-Meteo)
+    let syncTimeout = null;
+    function queueTelemetrySync() {
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(fetchCoordinateTelemetry, 400);
+    }
+
+    async function fetchCoordinateTelemetry() {
+      const center = map.getCenter();
+      const lat = center.lat.toFixed(4);
+      const lng = center.lng.toFixed(4);
+      
+      document.getElementById('stat-latlon').textContent = `${lat}°N, ${lng}°E`;
+
+      try {
+        const [meteoRes, marineRes] = await Promise.all([
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}¤t=surface_pressure,wind_speed_10m,wind_direction_10m,temperature_2m&hourly=precipitation_probability,temperature_2m&timezone=auto`),
+          fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}¤t=wave_height,wave_period&timezone=auto`).catch(() => null)
+        ]);
+
+        const meteo = await meteoRes.json();
+        const marine = marineRes ? await marineRes.json() : null;
+
+        if (meteo && meteo.current) {
+          document.getElementById('stat-pressure').textContent = `${Math.round(meteo.current.surface_pressure || 1013)} hPa`;
+          
+          let windSpd = meteo.current.wind_speed_10m || 0;
+          let windUnitTxt = 'km/h';
+          if (userPrefs.windUnit === 'kt') {
+            windSpd = (windSpd * 0.539957).toFixed(1);
+            windUnitTxt = 'kt';
+          } else if (userPrefs.windUnit === 'ms') {
+            windSpd = (windSpd / 3.6).toFixed(1);
+            windUnitTxt = 'm/s';
+          }
+          document.getElementById('stat-wind-val').textContent = `${windSpd} ${windUnitTxt}`;
+          document.getElementById('wind-arrow').style.transform = `rotate(${meteo.current.wind_direction_10m || 0}deg)`;
+
+          // Render Hourly Rain Strip
+          const hourlyStrip = document.getElementById('hourly-strip');
+          hourlyStrip.innerHTML = '';
+          const hours = (meteo.hourly.time || []).slice(0, 12);
+          hours.forEach((timeStr, idx) => {
+            const hour = new Date(timeStr).getHours();
+            const rainProb = meteo.hourly.precipitation_probability[idx] || 0;
+            const temp = Math.round(meteo.hourly.temperature_2m[idx] || 25);
+            
+            const chip = document.createElement('div');
+            chip.className = 'flex-shrink-0 px-2 py-1.5 rounded bg-tactical-850/80 border border-slate-800 text-[10px] w-14';
+            chip.innerHTML = `
+              <div class="text-slate-400 font-bold">${hour}:00</div>
+              <div class="text-cyan-400 font-bold my-0.5">${rainProb}%</div>
+              <div class="text-slate-300">${temp}°</div>
+            `;
+            hourlyStrip.appendChild(chip);
+          });
+        }
+
+        if (marine && marine.current) {
+          let waveH = marine.current.wave_height || 0.4;
+          let waveUnitTxt = 'm';
+          if (userPrefs.waveUnit === 'ft') {
+            waveH = (waveH * 3.28084).toFixed(1);
+            waveUnitTxt = 'ft';
+          } else {
+            waveH = waveH.toFixed(1);
+          }
+          const period = marine.current.wave_period || 6;
+          document.getElementById('stat-wave').textContent = `${waveH} ${waveUnitTxt} @ ${period}s`;
+          document.getElementById('drawer-wave').textContent = `${waveH} ${waveUnitTxt}`;
+          document.getElementById('drawer-wave-period').textContent = `Period: ${period}s`;
+        }
+
+        // Sun & Moon Telemetry
+        const sunTimes = SunCalc.getTimes(new Date(), parseFloat(lat), parseFloat(lng));
+        const sunrise = sunTimes.sunrise ? sunTimes.sunrise.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        const sunset = sunTimes.sunset ? sunTimes.sunset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        document.getElementById('drawer-sun').textContent = `↑ ${sunrise} ↓ ${sunset}`;
+
+      } catch (e) {
+        console.error('Telemetry update failed:', e);
+      }
+    }
+
+    map.on('moveend', queueTelemetrySync);
+    map.on('load', () => {
+      syncRadarEngine();
+      queueTelemetrySync();
+    });
+
+    // 7. WAYPOINT BUTTONS
+    document.querySelectorAll('.waypoint-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lat = parseFloat(btn.dataset.lat);
+        const lng = parseFloat(btn.dataset.lng);
+        const zoom = parseFloat(btn.dataset.zoom);
+        map.flyTo({ center: [lng, lat], zoom: zoom, speed: 1.4 });
+      });
+    });
+
+    // Pin Spot Functionality
+    document.getElementById('btn-pin-spot').addEventListener('click', () => {
+      const c = map.getCenter();
+      const name = prompt('Spot Designation / Name:', `Spot ${c.lat.toFixed(2)}, ${c.lng.toFixed(2)}`);
+      if (!name) return;
+
+      const strip = document.getElementById('waypoints-strip');
+      const btn = document.createElement('button');
+      btn.className = 'waypoint-btn px-2.5 py-1 rounded-md bg-tactical-900/80 backdrop-blur-md border border-cyan-800 text-cyan-300 hover:text-white whitespace-nowrap transition-all flex items-center gap-1.5';
+      btn.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>${name.toUpperCase()}`;
+      btn.addEventListener('click', () => map.flyTo({ center: [c.lng, c.lat], zoom: 11, speed: 1.4 }));
+      strip.insertBefore(btn, document.getElementById('btn-pin-spot'));
+    });
+
+    // 8. DRAWER SLIDE TOGGLE
+    let drawerOpen = false;
+    const drawer = document.getElementById('marine-drawer');
+    const drawerBtn = document.getElementById('toggle-drawer-btn');
+    drawerBtn.addEventListener('click', () => {
+      drawerOpen = !drawerOpen;
+      if (drawerOpen) {
+        drawer.classList.remove('max-h-0', 'opacity-0');
+        drawer.classList.add('max-h-96', 'opacity-100');
+        document.getElementById('drawer-btn-icon').style.transform = 'rotate(180deg)';
+      } else {
+        drawer.classList.add('max-h-0', 'opacity-0');
+        drawer.classList.remove('max-h-96', 'opacity-100');
+        document.getElementById('drawer-btn-icon').style.transform = 'rotate(0deg)';
+      }
+    });
+
+    // 9. SETTINGS MODAL & UNIT TOGGLES
+    const modal = document.getElementById('settings-modal');
+    document.getElementById('btn-settings').addEventListener('click', () => modal.classList.remove('hidden'));
+    document.getElementById('btn-close-settings').addEventListener('click', () => modal.classList.add('hidden'));
+
+    document.querySelectorAll('.unit-wind-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.unit-wind-btn').forEach(b => {
+          b.className = 'unit-wind-btn p-1.5 rounded bg-tactical-850 border border-slate-800 text-slate-400 text-center';
+        });
+        btn.className = 'unit-wind-btn p-1.5 rounded bg-tactical-800 border border-cyan-500 text-cyan-400 text-center font-bold';
+        userPrefs.windUnit = btn.dataset.unitWind;
+      });
+    });
+
+    document.querySelectorAll('.unit-wave-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.unit-wave-btn').forEach(b => {
+          b.className = 'unit-wave-btn p-1.5 rounded bg-tactical-850 border border-slate-800 text-slate-400 text-center';
+        });
+        btn.className = 'unit-wave-btn p-1.5 rounded bg-tactical-800 border border-cyan-500 text-cyan-400 text-center font-bold';
+        userPrefs.waveUnit = btn.dataset.unitWave;
+      });
+    });
+
+    document.getElementById('slider-radar-opacity').addEventListener('input', (e) => {
+      userPrefs.radarOpacity = parseFloat(e.target.value);
+      if (map.getLayer('rain-radar-layer')) {
+        map.setPaintProperty('rain-radar-layer', 'raster-opacity', userPrefs.radarOpacity);
+      }
+    });
+
+    document.getElementById('btn-save-settings').addEventListener('click', () => {
+      localStorage.setItem('radar_user_prefs', JSON.stringify(userPrefs));
+      modal.classList.add('hidden');
+      fetchCoordinateTelemetry();
+    });
+
+    // GPS Centering Hook
+    document.getElementById('btn-gps').addEventListener('click', () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 11, speed: 1.5 });
+        });
+      }
+    });
+
+    // Force Sync
+    document.getElementById('btn-refresh').addEventListener('click', () => {
+      syncRadarEngine();
+      fetchCoordinateTelemetry();
+    });
   </script>
 </body>
 </html>
