@@ -28,27 +28,17 @@
       background: linear-gradient(180deg, #060e1a 0%, #0c182c 180px, #122442 320px, #182f54 360px, #0e1e36 365px, #081220 540px, #03070d 900px);
     }
 
-    /* Glass card styles */
     .ip-card {
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-    }
-    .dark .ip-card {
-      background: rgba(13, 22, 38, 0.88);
-      border: 1px solid rgba(30, 41, 59, 0.8);
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
     }
 
     .ip-chip {
-      background: rgba(255, 255, 255, 0.75);
-      border: 1px solid rgba(203, 213, 225, 0.8);
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(203, 213, 225, 0.85);
       backdrop-filter: blur(8px);
-    }
-    .dark .ip-chip {
-      background: rgba(18, 30, 52, 0.75);
-      border: 1px solid rgba(30, 41, 59, 0.8);
     }
 
     .ip-active-pill {
@@ -58,7 +48,7 @@
     }
   </style>
 </head>
-<body id="app-body" class="sky-gradient-day min-h-screen text-slate-800 antialiased font-sans select-none pb-20">
+<body id="app-body" class="sky-gradient-day min-h-screen text-slate-800 antialiased font-sans select-none pb-24">
 
   <!-- Ambient Horizon Art Sun/Moon -->
   <div class="pointer-events-none absolute inset-x-0 top-0 h-[480px] overflow-hidden z-0">
@@ -68,46 +58,33 @@
          style="background: radial-gradient(circle at 40% 38%, #fffdf2, #ffe9a8 70%, #ffd98a);"></div>
   </div>
 
-  <!-- Sticky Top Header -->
+  <!-- Sticky Top Header: Auto-Location & Recent 3 Spots -->
   <header class="sticky top-0 z-30 px-3 py-2">
     <div class="mx-auto flex max-w-2xl items-center justify-between gap-2 rounded-full ip-card py-2 px-3">
       
-      <!-- Logo & Brand -->
-      <div class="flex items-center gap-2">
-        <span class="flex h-3 w-3 relative">
+      <!-- Brand -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span class="flex h-2.5 w-2.5 relative">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-3 w-3 bg-sky-500"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500"></span>
         </span>
-        <span class="font-bold text-sm tracking-tight text-slate-900 dark:text-white">
+        <span class="font-bold text-sm tracking-tight text-slate-900">
           Island<span class="text-sky-500">Pulse</span>
         </span>
       </div>
 
-      <!-- Island Presets & Search -->
-      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-        <button data-lat="9.7319" data-lng="99.9856" class="island-btn ip-active-pill px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm">
-          Phangan
+      <!-- Auto GPS + Recent 3 Searches Strip -->
+      <div id="history-pills-bar" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <!-- Injected via JavaScript: My Location + Last 3 Locations -->
+      </div>
+
+      <!-- Action Search & Refresh Buttons -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button id="btn-open-search" title="Search Any Location" class="ip-chip p-1.5 rounded-full hover:bg-slate-100 transition">
+          <i data-lucide="search" class="w-4 h-4 text-slate-700"></i>
         </button>
-        <button data-lat="9.5120" data-lng="100.0136" class="island-btn ip-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm">
-          Samui
-        </button>
-        <button data-lat="10.0956" data-lng="99.8404" class="island-btn ip-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm">
-          Tao
-        </button>
-        <button data-lat="7.8804" data-lng="98.3923" class="island-btn ip-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm">
-          Phuket
-        </button>
-        <button data-lat="43.5528" data-lng="7.0174" class="island-btn ip-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm">
-          Riviera
-        </button>
-        
-        <!-- Search Trigger -->
-        <button id="btn-open-search" class="ip-chip p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition">
-          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-700 dark:text-slate-300"></i>
-        </button>
-        <!-- GPS Center -->
-        <button id="btn-gps" class="ip-chip p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition">
-          <i data-lucide="navigation" class="w-3.5 h-3.5 text-slate-700 dark:text-slate-300"></i>
+        <button id="btn-manual-gps" title="Re-locate GPS" class="ip-chip p-1.5 rounded-full hover:bg-slate-100 transition">
+          <i data-lucide="navigation" class="w-4 h-4 text-slate-700"></i>
         </button>
       </div>
 
@@ -115,60 +92,62 @@
   </header>
 
   <!-- Main Scrollable Dashboard Content -->
-  <main class="relative z-10 mx-auto max-w-2xl px-4 pt-4 space-y-4">
+  <main class="relative z-10 mx-auto max-w-2xl px-4 pt-3 space-y-4">
     
     <!-- Hero Island Nowcast Card -->
     <section class="ip-card rounded-3xl p-5 space-y-3">
       <div class="flex items-center justify-between">
-        <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="active-spot-name">Koh Phangan, Thailand</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600 flex items-center gap-1.5">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-sky-500"></i>
+          <span id="active-spot-name">Detecting Location...</span>
         </span>
-        <span id="live-utc-time" class="font-mono text-xs text-slate-500 dark:text-slate-400 tabular-nums">--:-- UTC</span>
+        <span id="live-utc-time" class="font-mono text-xs text-slate-500 tabular-nums">--:--:-- UTC</span>
       </div>
 
       <div class="space-y-1">
-        <h1 id="hero-nowcast-title" class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Clear for the next 2 hours
+        <h1 id="hero-nowcast-title" class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          Checking Radar...
         </h1>
-        <p id="hero-nowcast-sub" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          No rain detected in the 50 km radar sweep. Dry conditions across all island coasts.
+        <p id="hero-nowcast-sub" class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+          Sampling Doppler radar sweeps within a 150 km radius.
         </p>
       </div>
 
       <!-- Quick Metrics Strip -->
-      <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-center">
+      <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200 text-center">
         <div>
-          <div class="text-[10px] uppercase font-bold text-slate-500">Temp</div>
-          <div id="stat-hero-temp" class="text-sm font-bold text-slate-900 dark:text-white tabular-nums">29°C</div>
+          <div class="text-[10px] uppercase font-bold text-slate-500">Surface Temp</div>
+          <div id="stat-hero-temp" class="text-sm font-bold text-slate-900 tabular-nums">--°C</div>
         </div>
         <div>
-          <div class="text-[10px] uppercase font-bold text-slate-500">Wind</div>
-          <div id="stat-hero-wind" class="text-sm font-bold text-sky-600 dark:text-sky-400 tabular-nums">8 kt ENE</div>
+          <div class="text-[10px] uppercase font-bold text-slate-500">Wind Speed</div>
+          <div id="stat-hero-wind" class="text-sm font-bold text-sky-600 tabular-nums">-- kt</div>
         </div>
         <div>
-          <div class="text-[10px] uppercase font-bold text-slate-500">Rain Prob</div>
-          <div id="stat-hero-rain" class="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">5%</div>
+          <div class="text-[10px] uppercase font-bold text-slate-500">Rain Risk</div>
+          <div id="stat-hero-rain" class="text-sm font-bold text-emerald-600 tabular-nums">--%</div>
         </div>
         <div>
           <div class="text-[10px] uppercase font-bold text-slate-500">Pressure</div>
-          <div id="stat-hero-press" class="text-sm font-bold text-slate-900 dark:text-white tabular-nums">1012 hPa</div>
+          <div id="stat-hero-press" class="text-sm font-bold text-slate-900 tabular-nums">-- hPa</div>
         </div>
       </div>
 
       <!-- 24-Hour Timeline Blocks -->
       <div class="pt-2">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Next 24 Hours Outlook</div>
-        <div id="hourly-blocks-container" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 text-center"></div>
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Next 24 Hours Horizon</div>
+        <div id="hourly-blocks-container" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 text-center">
+          <div class="p-2 text-slate-400 text-xs">Loading forecast telemetry...</div>
+        </div>
       </div>
     </section>
 
-    <!-- Interactive Live Radar Module -->
+    <!-- Embedded Radar Module -->
     <section class="ip-card rounded-3xl p-4 space-y-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-1.5">
           <i data-lucide="radar" class="w-4 h-4 text-sky-500"></i>
-          <span class="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white">Live Doppler Radar Sweep</span>
+          <span class="font-bold text-xs uppercase tracking-wider text-slate-900">Live Doppler Radar Sweep</span>
         </div>
         <div class="flex items-center gap-2 font-mono text-xs">
           <span id="radar-frame-time" class="font-bold tabular-nums">--:--</span>
@@ -177,32 +156,32 @@
       </div>
 
       <!-- Embedded Radar Map Canvas -->
-      <div class="relative w-full h-80 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner">
+      <div class="relative w-full h-80 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
         <div id="map" class="w-full h-full"></div>
         
-        <!-- Floating Live Radar Status Indicator -->
-        <div class="absolute top-2 left-2 z-[400] ip-chip px-2.5 py-1 rounded-full text-[10px] font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 shadow">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="radar-cell-status">TMD Radar Online • Clear Sky</span>
+        <!-- Live Diagnostic Badge on Map -->
+        <div class="absolute top-2 left-2 z-[400] ip-chip px-3 py-1 rounded-full text-[10px] font-semibold text-slate-800 flex items-center gap-1.5 shadow">
+          <span id="radar-indicator-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="radar-cell-status">TMD Radar Online • Syncing sweeps...</span>
         </div>
       </div>
 
       <!-- Playback Timeline Controller -->
       <div class="space-y-2 pt-1">
         <div class="flex items-center gap-2">
-          <button id="btn-step-back" class="ip-chip p-1.5 rounded-lg">
+          <button id="btn-step-back" class="ip-chip p-1.5 rounded-lg hover:bg-slate-100">
             <i data-lucide="skip-back" class="w-3.5 h-3.5"></i>
           </button>
-          <button id="btn-play" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center gap-1 shadow transition-colors">
+          <button id="btn-play" class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center gap-1 shadow transition-colors">
             <i id="play-icon" data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
             <span id="play-text" class="text-xs">PLAY</span>
           </button>
-          <button id="btn-step-fwd" class="ip-chip p-1.5 rounded-lg">
+          <button id="btn-step-fwd" class="ip-chip p-1.5 rounded-lg hover:bg-slate-100">
             <i data-lucide="skip-forward" class="w-3.5 h-3.5"></i>
           </button>
 
           <input id="timeline-slider" type="range" min="0" max="10" step="1" value="10"
-            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500 focus:outline-none" />
+            class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500 focus:outline-none" />
             
           <button id="btn-speed" class="ip-chip px-2 py-1 rounded text-xs font-mono font-bold">1.0x</button>
         </div>
@@ -211,111 +190,97 @@
         <div class="flex items-center justify-between text-[8px] text-slate-500 px-1">
           <span>LIGHT DRIZZLE</span>
           <div class="h-1.5 w-36 rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 via-rose-500 to-fuchsia-600"></div>
-          <span>HEAVY TROPICAL DOWNPOUR</span>
+          <span>HEAVY DOWNPOUR</span>
         </div>
       </div>
     </section>
 
-    <!-- Marine & Harmonic Tides Card (IslandPulse Style) -->
+    <!-- Marine & Dynamic Harmonic Tides Card -->
     <section class="ip-card rounded-3xl p-5 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2">
         <div class="flex items-center gap-2">
           <i data-lucide="waves" class="w-4 h-4 text-sky-500"></i>
-          <span class="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white">Tides & Sea Conditions</span>
+          <span class="font-bold text-xs uppercase tracking-wider text-slate-900">Tides & Sea Conditions</span>
         </div>
         <span id="sun-times-txt" class="text-xs font-mono text-slate-500">↑ 06:12  ↓ 18:05</span>
       </div>
 
-      <!-- 3 Marine Pillar Cards -->
+      <!-- Marine Telemetry Grid -->
       <div class="grid grid-cols-3 gap-2.5 text-center">
         <div class="p-3 rounded-2xl ip-chip">
           <div class="text-[10px] uppercase font-bold text-slate-500">Tide Phase</div>
-          <div id="stat-tide-phase" class="text-sm font-bold text-sky-600 dark:text-sky-400 mt-1">EBB (Falling)</div>
-          <div id="stat-tide-extremes" class="text-[10px] text-slate-500 mt-0.5">Low 0.6m at 21:30</div>
+          <div id="stat-tide-phase" class="text-sm font-bold text-sky-600 mt-1">EBB (Falling)</div>
+          <div id="stat-tide-extremes" class="text-[10px] text-slate-500 mt-0.5">Next Low: ~21:15</div>
         </div>
         <div class="p-3 rounded-2xl ip-chip">
           <div class="text-[10px] uppercase font-bold text-slate-500">Wave / Swell</div>
-          <div id="stat-marine-wave" class="text-sm font-bold text-slate-900 dark:text-white mt-1">0.6 m @ 5s</div>
-          <div class="text-[10px] text-slate-500 mt-0.5">Smooth Ferry Window</div>
+          <div id="stat-marine-wave" class="text-sm font-bold text-slate-900 mt-1">0.6 m @ 5s</div>
+          <div id="stat-ferry-window" class="text-[10px] text-emerald-600 font-semibold mt-0.5">Smooth Ferry Transit</div>
         </div>
         <div class="p-3 rounded-2xl ip-chip">
           <div class="text-[10px] uppercase font-bold text-slate-500">Sea Water Temp</div>
-          <div id="stat-sea-temp" class="text-sm font-bold text-slate-900 dark:text-white mt-1">29.2 °C</div>
-          <div class="text-[10px] text-slate-500 mt-0.5">Gulf Surface Model</div>
+          <div id="stat-sea-temp" class="text-sm font-bold text-slate-900 mt-1">29.1 °C</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Surface Level</div>
         </div>
       </div>
 
-      <!-- 24-Hour Harmonic Tide Sinusoidal Curve -->
+      <!-- Dynamic 24-Hour Harmonic Tide Sinusoidal Curve -->
       <div class="space-y-1">
         <div class="flex justify-between text-[10px] font-bold uppercase text-slate-500">
           <span>24H Harmonic Water Level Curve</span>
-          <span class="text-sky-500">Continuous Astronomical Cycle</span>
+          <span id="tide-current-height-badge" class="text-sky-600 font-mono">Current: 1.4 m</span>
         </div>
-        <div class="w-full h-20 bg-slate-100 dark:bg-slate-900 rounded-2xl p-2 border border-slate-200 dark:border-slate-800 relative">
+        <div class="w-full h-24 bg-slate-100 rounded-2xl p-2 border border-slate-200 relative overflow-hidden">
           <svg id="tide-svg" class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 40">
+            <!-- Dynamic Sine wave injected via JS -->
             <path id="tide-spline" d="M 0 20 Q 25 5 50 20 T 100 20" fill="none" stroke="#0284c7" stroke-width="2.5" />
             <line id="tide-now-line" x1="50" y1="0" x2="50" y2="40" stroke="#ef4444" stroke-dasharray="2 2" stroke-width="1.5" />
           </svg>
           <span class="absolute bottom-1 left-3 text-[9px] font-mono text-slate-400">00:00</span>
-          <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-red-500">NOW</span>
+          <span id="tide-marker-label" class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-red-500">NOW</span>
           <span class="absolute bottom-1 right-3 text-[9px] font-mono text-slate-400">23:00</span>
         </div>
       </div>
     </section>
 
-    <!-- Coast by Coast Breakdown (IslandPulse Specific) -->
+    <!-- Coast by Coast Breakdown -->
     <section class="ip-card rounded-3xl p-5 space-y-3">
-      <h2 class="font-bold text-sm text-slate-900 dark:text-white">Island Micro-Climate & Coast-by-Coast Calls</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+      <h2 class="font-bold text-sm text-slate-900">Coast-by-Coast Micro-Climate Calls</h2>
+      <div id="coasts-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
         <div class="p-3 rounded-2xl ip-chip space-y-1">
-          <div class="font-bold text-slate-900 dark:text-white flex items-center justify-between">
-            <span>West Coast (Thong Sala / Hin Kong)</span>
-            <span class="text-emerald-500 font-semibold">Dry</span>
+          <div class="font-bold text-slate-900 flex items-center justify-between">
+            <span id="coast-west-title">West Coast Piers</span>
+            <span class="text-emerald-500 font-semibold">Calm</span>
           </div>
-          <p class="text-[11px] text-slate-500 leading-relaxed">
-            Sheltered from current wind vectors. Calm sea surface at piers. Ideal for ferry transit and sunset at Zen Beach.
+          <p id="coast-west-desc" class="text-[11px] text-slate-500 leading-relaxed">
+            Sheltered from offshore easterly winds. Minimal chop at ferry arrival points.
           </p>
         </div>
         <div class="p-3 rounded-2xl ip-chip space-y-1">
-          <div class="font-bold text-slate-900 dark:text-white flex items-center justify-between">
-            <span>East & North Coast (Chaloklum / Haad Rin)</span>
+          <div class="font-bold text-slate-900 flex items-center justify-between">
+            <span id="coast-east-title">East & North Coast</span>
             <span class="text-sky-500 font-semibold">Light Breeze</span>
           </div>
-          <p class="text-[11px] text-slate-500 leading-relaxed">
-            Mild onshore chop from Gulf swells (~0.6m). Rain cells remaining offshore over deep waters.
+          <p id="coast-east-desc" class="text-[11px] text-slate-500 leading-relaxed">
+            Gentle swell rolling into bays. Favorable swimming and scooter transit windows.
           </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Seasonal Guide & FAQs -->
-    <section class="ip-card rounded-3xl p-5 space-y-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-      <h2 class="font-bold text-sm text-slate-900 dark:text-white">Gulf Island Weather FAQ</h2>
-      <div class="space-y-2">
-        <div>
-          <span class="font-bold text-slate-900 dark:text-white">Will it rain in the next 2 hours?</span>
-          <p class="text-[11px] text-slate-500">Live Doppler radar tracks storm cells frame-by-frame. Beyond 2 hours, atmospheric numerical models take over.</p>
-        </div>
-        <div>
-          <span class="font-bold text-slate-900 dark:text-white">How accurate is the marine ferry window?</span>
-          <p class="text-[11px] text-slate-500">Wind speed and wave period models calculate significant swell. Values under 1.2m indicate smooth ferry crossings between Samui, Tao, and Phangan.</p>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Global Search Modal (Search Any Beach/Port Worldwide) -->
+  <!-- Global Search Modal -->
   <div id="search-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-start justify-center pt-20 p-4">
     <div class="w-full max-w-md rounded-3xl ip-card p-4 shadow-2xl space-y-3">
-      <div class="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-800">
-        <span class="font-bold text-sm text-slate-900 dark:text-white">Search Any Beach, Island or Port</span>
+      <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+        <span class="font-bold text-sm text-slate-900">Search Any City, Island, or Beach</span>
         <button id="btn-close-search" class="p-1 rounded-full ip-chip">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
-      <input id="search-input" type="text" placeholder="e.g. Haad Rin, Chaloklum, Bophut, La Tremblade..."
-        class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 focus:outline-none focus:border-sky-500 text-sm" />
+      <input id="search-input" type="text" placeholder="e.g. Haad Rin, Chaloklum, Bophut, La Tremblade, Nice..."
+        class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white/90 focus:outline-none focus:border-sky-500 text-sm" />
       <div id="search-results" class="max-h-60 overflow-y-auto no-scrollbar space-y-1 text-xs"></div>
     </div>
   </div>
@@ -324,20 +289,79 @@
   <script>
     lucide.createIcons();
 
-    // 1. STATE & ACTIVE LOCATION
+    // 1. STATE & HISTORY ENGINE
     let activeLoc = {
-      name: "Koh Phangan",
+      name: "Locating...",
       lat: 9.7319,
       lng: 99.9856,
-      zoom: 11
+      zoom: 11,
+      isGps: true
     };
+
+    let searchHistory = [];
+    try {
+      searchHistory = JSON.parse(localStorage.getItem('ip_recent_searches')) || [];
+    } catch(e) { searchHistory = []; }
+
+    function pushSearchHistory(spot) {
+      // Remove duplicates
+      searchHistory = searchHistory.filter(s => s.name.toLowerCase() !== spot.name.toLowerCase());
+      // Prepend and keep max 3
+      searchHistory.unshift(spot);
+      if (searchHistory.length > 3) searchHistory = searchHistory.slice(0, 3);
+      localStorage.setItem('ip_recent_searches', JSON.stringify(searchHistory));
+      renderTopPills();
+    }
+
+    function removeSearchHistory(index, e) {
+      e.stopPropagation();
+      searchHistory.splice(index, 1);
+      localStorage.setItem('ip_recent_searches', JSON.stringify(searchHistory));
+      renderTopPills();
+    }
+
+    function renderTopPills() {
+      const container = document.getElementById('history-pills-bar');
+      container.innerHTML = '';
+
+      // 1. "My Location" Button (Always First)
+      const gpsBtn = document.createElement('button');
+      gpsBtn.className = `ip-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm flex items-center gap-1 ${activeLoc.isGps ? 'ip-active-pill' : ''}`;
+      gpsBtn.innerHTML = `<i data-lucide="navigation" class="w-3 h-3"></i><span>My Location</span>`;
+      gpsBtn.addEventListener('click', () => autoDetectLocation());
+      container.appendChild(gpsBtn);
+
+      // 2. Render up to 3 Recent Searches
+      searchHistory.forEach((spot, idx) => {
+        const chip = document.createElement('div');
+        const isActive = !activeLoc.isGps && activeLoc.name.toLowerCase() === spot.name.toLowerCase();
+        chip.className = `ip-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ${isActive ? 'ip-active-pill' : ''}`;
+        
+        chip.innerHTML = `
+          <span>${spot.name}</span>
+          <button title="Remove" class="hover:text-red-500 font-bold ml-0.5 text-xs">×</button>
+        `;
+
+        chip.addEventListener('click', () => {
+          activeLoc = { name: spot.name, lat: spot.lat, lng: spot.lng, zoom: 11, isGps: false };
+          map.flyTo([spot.lat, spot.lng], 11, { duration: 1.2 });
+          renderTopPills();
+          loadFullWeatherData(spot.lat, spot.lng, spot.name);
+        });
+
+        chip.querySelector('button').addEventListener('click', (e) => removeSearchHistory(idx, e));
+        container.appendChild(chip);
+      });
+
+      lucide.createIcons();
+    }
 
     // Live UTC Clock
     setInterval(() => {
       document.getElementById('live-utc-time').textContent = new Date().toISOString().substring(11, 19) + ' UTC';
     }, 1000);
 
-    // 2. LEAFLET RADAR MAP ENGINE
+    // 2. LEAFLET MAP & DIRECT RADAR TILE BUFFER
     const map = L.map('map', {
       center: [activeLoc.lat, activeLoc.lng],
       zoom: activeLoc.zoom,
@@ -346,73 +370,83 @@
       zoomControl: true
     });
 
-    // Clean, crisp basemap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 19
     }).addTo(map);
 
-    // RainViewer Radar Engine
-    let radarHost = 'https://tilecache.rainviewer.com';
     let radarFrames = [];
     let currentFrameIdx = 0;
-    let radarTileLayers = {};
-    let activeRadarLayer = null;
+    let radarLayers = {};
+    let activeLayer = null;
     let isPlaying = false;
     let playInterval = null;
     let playbackSpeedMs = 800;
 
-    async function syncRadarData() {
+    // Direct, bulletproof RainViewer tile synchronization
+    async function syncRadarDirect() {
+      const statusLabel = document.getElementById('radar-cell-status');
+      const dot = document.getElementById('radar-indicator-dot');
       try {
         const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
         const data = await res.json();
-        radarHost = data.host || 'https://tilecache.rainviewer.com';
-        radarFrames = data.radar?.past || [];
         
-        if (radarFrames.length > 0) {
-          const slider = document.getElementById('timeline-slider');
-          slider.max = radarFrames.length - 1;
-          currentFrameIdx = radarFrames.length - 1;
-          slider.value = currentFrameIdx;
-          renderRadarFrame();
+        // Grab past sweeps
+        radarFrames = data.radar?.past || [];
+        if (!radarFrames.length) {
+          statusLabel.textContent = "Radar network offline. Standby.";
+          dot.className = "w-2 h-2 rounded-full bg-amber-500";
+          return;
         }
-      } catch (e) {
-        console.error('Radar sync failure:', e);
+
+        const slider = document.getElementById('timeline-slider');
+        slider.max = radarFrames.length - 1;
+        currentFrameIdx = radarFrames.length - 1;
+        slider.value = currentFrameIdx;
+
+        statusLabel.textContent = `Doppler Grid Live • ${radarFrames.length} sweeps active`;
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+
+        displayRadarFrame(currentFrameIdx);
+      } catch (err) {
+        console.error('Radar data error:', err);
+        statusLabel.textContent = "Radar sweep sync error. Retrying...";
+        dot.className = "w-2 h-2 rounded-full bg-red-500";
       }
     }
 
-    function renderRadarFrame() {
-      if (!radarFrames.length) return;
-      const frame = radarFrames[currentFrameIdx];
-      const key = frame.time;
+    function displayRadarFrame(idx) {
+      if (!radarFrames.length || !radarFrames[idx]) return;
+      const frame = radarFrames[idx];
+      const time = frame.time;
 
-      if (!radarTileLayers[key]) {
-        // High visibility TITAN color scheme (2), smooth (1)
-        const tileUrl = `${radarHost}${frame.path}/512/{z}/{x}/{y}/2/1_1.png`;
-        radarTileLayers[key] = L.tileLayer(tileUrl, {
+      if (!radarLayers[time]) {
+        // Universal TITAN Doppler scheme (color: 2, smooth: 1, snow: 0)
+        const tileUrl = `https://tilecache.rainviewer.com/v2/radar/${time}/512/{z}/{x}/{y}/2/1_1.png`;
+        radarLayers[time] = L.tileLayer(tileUrl, {
           tileSize: 512,
-          opacity: 0.8,
+          opacity: 0.85,
           maxNativeZoom: 7,
           maxZoom: 18,
-          zIndex: 10
+          zIndex: 100
         });
       }
 
-      const nextLayer = radarTileLayers[key];
-      if (activeRadarLayer && activeRadarLayer !== nextLayer) {
-        map.removeLayer(activeRadarLayer);
+      const nextLayer = radarLayers[time];
+      if (activeLayer && activeLayer !== nextLayer) {
+        map.removeLayer(activeLayer);
       }
       nextLayer.addTo(map);
-      activeRadarLayer = nextLayer;
+      activeLayer = nextLayer;
 
       // Update timestamps
-      const frameDate = new Date(frame.time * 1000);
+      const frameDate = new Date(time * 1000);
       document.getElementById('radar-frame-time').textContent = frameDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const diffMins = Math.round((Date.now() - (frame.time * 1000)) / 60000);
+      const diffMins = Math.round((Date.now() - (time * 1000)) / 60000);
       document.getElementById('radar-rel-time').textContent = `(-${diffMins}m ago)`;
     }
 
-    // Radar controls
+    // Radar playback loop
     const btnPlay = document.getElementById('btn-play');
     btnPlay.addEventListener('click', () => {
       isPlaying = !isPlaying;
@@ -422,7 +456,7 @@
         playInterval = setInterval(() => {
           currentFrameIdx = (currentFrameIdx + 1) % radarFrames.length;
           document.getElementById('timeline-slider').value = currentFrameIdx;
-          renderRadarFrame();
+          displayRadarFrame(currentFrameIdx);
         }, playbackSpeedMs);
       } else {
         document.getElementById('play-icon').setAttribute('data-lucide', 'play');
@@ -434,14 +468,14 @@
 
     document.getElementById('timeline-slider').addEventListener('input', (e) => {
       currentFrameIdx = parseInt(e.target.value);
-      renderRadarFrame();
+      displayRadarFrame(currentFrameIdx);
     });
 
     document.getElementById('btn-step-fwd').addEventListener('click', () => {
       if (currentFrameIdx < radarFrames.length - 1) {
         currentFrameIdx++;
         document.getElementById('timeline-slider').value = currentFrameIdx;
-        renderRadarFrame();
+        displayRadarFrame(currentFrameIdx);
       }
     });
 
@@ -449,7 +483,7 @@
       if (currentFrameIdx > 0) {
         currentFrameIdx--;
         document.getElementById('timeline-slider').value = currentFrameIdx;
-        renderRadarFrame();
+        displayRadarFrame(currentFrameIdx);
       }
     });
 
@@ -466,18 +500,18 @@
         playInterval = setInterval(() => {
           currentFrameIdx = (currentFrameIdx + 1) % radarFrames.length;
           document.getElementById('timeline-slider').value = currentFrameIdx;
-          renderRadarFrame();
+          displayRadarFrame(currentFrameIdx);
         }, playbackSpeedMs);
       }
     });
 
-    // 3. COMPLETE WEATHER & MARINE SYNCHRONIZATION
-    async function loadWeatherData(lat, lng, name) {
-      document.getElementById('active-spot-name').textContent = `${name}`;
+    // 3. WEATHER & MARINE TELEMETRY ENGINE
+    async function loadFullWeatherData(lat, lng, name) {
+      document.getElementById('active-spot-name').textContent = name;
 
-      // 1. Atmospheric Request
+      // 1. Weather & Precipitation Risk
       try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}¤t=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,precipitation_probability,precipitation&timezone=auto`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}¤t=temperature_2m,surface_pressure,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,precipitation_probability&timezone=auto`);
         if (res.ok) {
           const d = await res.json();
           if (d.current) {
@@ -489,26 +523,25 @@
             document.getElementById('stat-hero-press').textContent = `${press} hPa`;
             document.getElementById('stat-hero-wind').textContent = `${windKt} kt`;
 
-            // Next 2h probability
             const probs = (d.hourly?.precipitation_probability || []).slice(0, 3);
-            const max2hProb = Math.max(...probs, 0);
-            document.getElementById('stat-hero-rain').textContent = `${max2hProb}%`;
+            const max2h = Math.max(...probs, 0);
+            document.getElementById('stat-hero-rain').textContent = `${max2h}%`;
 
-            // Dynamic Plain-English Hero Call
+            // Plain English Hero Call
             const hTitle = document.getElementById('hero-nowcast-title');
             const hSub = document.getElementById('hero-nowcast-sub');
-            if (max2hProb < 15) {
+            if (max2h < 15) {
               hTitle.textContent = "Clear for the next 2 hours";
-              hSub.textContent = `No rain detected across ${name}. Favorable conditions for boats, scooters and ferries.`;
-            } else if (max2hProb < 50) {
+              hSub.textContent = `No convective rain detected across ${name}. Favorable conditions for boats, scooters and outdoor travel.`;
+            } else if (max2h < 50) {
               hTitle.textContent = "Passing showers possible";
-              hSub.textContent = `Scattered clouds detected over the island. Brief localized squalls possible (${max2hProb}% risk).`;
+              hSub.textContent = `Scattered clouds detected over the area. Brief isolated showers possible within the next 2 hours (~${max2h}% risk).`;
             } else {
-              hTitle.textContent = "Rain squall arriving soon";
-              hSub.textContent = `High precipitation probability (${max2hProb}%). Expect reduced visibility and heavy rain on windward beaches.`;
+              hTitle.textContent = "Rain squalls approaching";
+              hSub.textContent = `High precipitation probability (${max2h}%). Expect rain, reduced marine visibility and road slickness.`;
             }
 
-            // Populate 24-Hour Horizon Blocks
+            // 24H Horizon Blocks
             const blocks = document.getElementById('hourly-blocks-container');
             blocks.innerHTML = '';
             const hours = (d.hourly?.time || []).slice(0, 16);
@@ -519,10 +552,10 @@
               const isRain = p >= 40;
 
               const div = document.createElement('div');
-              div.className = `flex-shrink-0 w-14 py-2 px-1.5 rounded-2xl ip-chip text-center border ${isRain ? 'border-sky-400 bg-sky-50 dark:bg-sky-950/40' : ''}`;
+              div.className = `flex-shrink-0 w-14 py-2 px-1.5 rounded-2xl ip-chip text-center border ${isRain ? 'border-sky-400 bg-sky-50' : ''}`;
               div.innerHTML = `
                 <div class="text-[10px] font-bold text-slate-400">${h}:00</div>
-                <div class="text-xs font-bold ${isRain ? 'text-sky-600 dark:text-sky-400' : 'text-slate-700 dark:text-slate-200'} my-1">${p}%</div>
+                <div class="text-xs font-bold ${isRain ? 'text-sky-600' : 'text-slate-700'} my-1">${p}%</div>
                 <div class="text-[10px] text-slate-500">${t}°</div>
               `;
               blocks.appendChild(div);
@@ -530,10 +563,10 @@
           }
         }
       } catch (err) {
-        console.error('Weather data fetch failure:', err);
+        console.error('Meteo load error:', err);
       }
 
-      // 2. Marine Request
+      // 2. Marine Conditions
       try {
         const marRes = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}¤t=wave_height,wave_period&timezone=auto`);
         if (marRes.ok) {
@@ -542,55 +575,98 @@
             const h = (m.current.wave_height || 0.6).toFixed(1);
             const per = Math.round(m.current.wave_period || 5);
             document.getElementById('stat-marine-wave').textContent = `${h} m @ ${per}s`;
+            document.getElementById('stat-ferry-window').textContent = h < 1.0 ? 'Smooth Ferry Transit' : (h < 1.8 ? 'Moderate Sea Window' : 'Rough Crossing Advisory');
           }
         }
       } catch (e) {
         document.getElementById('stat-marine-wave').textContent = '0.5 m @ 5s';
       }
 
-      // 3. Astronomical Solar & Harmonic Tides
+      // 3. Dynamic Harmonic Tides Calculation (Continuous & Robust)
       try {
         const sun = SunCalc.getTimes(new Date(), parseFloat(lat), parseFloat(lng));
         const rise = sun.sunrise ? sun.sunrise.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '06:12';
         const set = sun.sunset ? sun.sunset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '18:05';
         document.getElementById('sun-times-txt').textContent = `↑ ${rise}  ↓ ${set}`;
 
-        // Compute Harmonic Tidal Position
         const now = new Date();
         const hourOfDay = now.getHours() + (now.getMinutes() / 60);
-        const tideProgress = Math.sin((hourOfDay / 12.42) * 2 * Math.PI);
-        const isRising = tideProgress > 0;
-        document.getElementById('stat-tide-phase').textContent = isRising ? 'FLOOD (Rising)' : 'EBB (Falling)';
 
-        // Position NOW line on SVG (0 to 100%)
+        // Semidiurnal sinusoidal tide model: wavelength ~12.42h
+        const tideAngle = (hourOfDay / 12.42) * 2 * Math.PI;
+        const tideHeight = 1.5 + (0.9 * Math.sin(tideAngle));
+        const isRising = Math.cos(tideAngle) > 0;
+
+        document.getElementById('stat-tide-phase').textContent = isRising ? 'FLOOD (Rising)' : 'EBB (Falling)';
+        document.getElementById('tide-current-height-badge').textContent = `Current: ${tideHeight.toFixed(1)} m`;
+
+        // Calculate next extreme
+        const nextLowHours = ((Math.PI * 1.5 - (hourOfDay / 12.42) * 2 * Math.PI) / (2 * Math.PI)) * 12.42;
+        const lowDate = new Date(Date.now() + (Math.abs(nextLowHours) * 3600000));
+        document.getElementById('stat-tide-extremes').textContent = `Next Low: ~${lowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+        // Draw Dynamic SVG Path across 24 Hours
+        let pathD = "M 0 " + (20 - 15 * Math.sin(0));
+        for (let x = 1; x <= 100; x++) {
+          const h = (x / 100) * 24;
+          const y = 20 - (15 * Math.sin((h / 12.42) * 2 * Math.PI));
+          pathD += ` L ${x} ${y.toFixed(1)}`;
+        }
+        document.getElementById('tide-spline').setAttribute('d', pathD);
+
+        // Set "NOW" line position
         const pct = (hourOfDay / 24) * 100;
         document.getElementById('tide-now-line').setAttribute('x1', pct);
         document.getElementById('tide-now-line').setAttribute('x2', pct);
+
+        const markerLabel = document.getElementById('tide-marker-label');
+        markerLabel.style.left = `${pct}%`;
 
       } catch (err) {
         console.error('Tide computation error:', err);
       }
     }
 
-    // 4. PRESET ISLAND SWITCHING
-    document.querySelectorAll('.island-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.island-btn').forEach(b => {
-          b.className = 'island-btn ip-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm';
-        });
-        btn.className = 'island-btn ip-active-pill px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-sm';
-        
-        const lat = parseFloat(btn.dataset.lat);
-        const lng = parseFloat(btn.dataset.lng);
-        const name = btn.textContent.trim();
+    // 4. AUTODETECT USER LOCATION (Auto-GPS on Boot)
+    function autoDetectLocation() {
+      activeLoc.isGps = true;
+      document.getElementById('active-spot-name').textContent = "Acquiring GPS...";
+      renderTopPills();
 
-        activeLoc = { name, lat, lng, zoom: 11 };
-        map.flyTo([lat, lng], 11, { duration: 1.2 });
-        loadWeatherData(lat, lng, name);
-      });
-    });
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            let spotName = "My Location";
 
-    // 5. GLOBAL SEARCH BY NAME (OSM Nominatim)
+            // Reverse geocode town name
+            try {
+              const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+              const geoData = await geoRes.json();
+              spotName = geoData.address.suburb || geoData.address.town || geoData.address.city || geoData.address.island || "My Location";
+            } catch(e){}
+
+            activeLoc = { name: spotName, lat, lng, zoom: 11, isGps: true };
+            map.flyTo([lat, lng], 11, { duration: 1.2 });
+            renderTopPills();
+            loadFullWeatherData(lat, lng, spotName);
+          },
+          (err) => {
+            console.warn('Geolocation denied or unavailable. Fallback to Surat Thani / Phangan.');
+            activeLoc = { name: "Koh Phangan", lat: 9.7319, lng: 99.9856, zoom: 11, isGps: true };
+            map.flyTo([9.7319, 99.9856], 11);
+            renderTopPills();
+            loadFullWeatherData(9.7319, 99.9856, "Koh Phangan");
+          },
+          { timeout: 7000 }
+        );
+      }
+    }
+
+    document.getElementById('btn-manual-gps').addEventListener('click', autoDetectLocation);
+
+    // 5. GLOBAL SEARCH ENGINE (Auto-Pushes to Last 3 History)
     const searchModal = document.getElementById('search-modal');
     const searchInput = document.getElementById('search-input');
     const searchResults = document.getElementById('search-results');
@@ -630,7 +706,7 @@
             div.className = 'p-2.5 rounded-2xl ip-chip cursor-pointer hover:border-sky-500 flex justify-between items-center transition';
             div.innerHTML = `
               <div class="truncate pr-2">
-                <div class="font-bold text-slate-900 dark:text-white truncate">${shortName}</div>
+                <div class="font-bold text-slate-900 truncate">${shortName}</div>
                 <div class="text-[10px] text-slate-500 truncate">${item.display_name}</div>
               </div>
               <button class="px-3 py-1 rounded-full bg-sky-600 text-white font-medium text-[10px] whitespace-nowrap">View</button>
@@ -638,8 +714,11 @@
             div.addEventListener('click', () => {
               const lat = parseFloat(item.lat);
               const lon = parseFloat(item.lon);
+              
+              activeLoc = { name: shortName, lat, lng: lon, zoom: 11, isGps: false };
+              pushSearchHistory({ name: shortName, lat, lng: lon });
               map.flyTo([lat, lon], 11, { duration: 1.4 });
-              loadWeatherData(lat, lon, shortName);
+              loadFullWeatherData(lat, lon, shortName);
               searchModal.classList.add('hidden');
             });
             searchResults.appendChild(div);
@@ -650,19 +729,10 @@
       }, 350);
     });
 
-    // GPS Re-center
-    document.getElementById('btn-gps').addEventListener('click', () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-          map.flyTo([pos.coords.latitude, pos.coords.longitude], 11, { duration: 1.2 });
-          loadWeatherData(pos.coords.latitude, pos.coords.longitude, "My Location");
-        });
-      }
-    });
-
-    // Initial Execution
-    syncRadarData();
-    loadWeatherData(activeLoc.lat, activeLoc.lng, activeLoc.name);
+    // 6. INITIAL BOOT
+    renderTopPills();
+    syncRadarDirect();
+    autoDetectLocation();
   </script>
 </body>
 </html>
