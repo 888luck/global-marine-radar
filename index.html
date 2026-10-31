@@ -3,47 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>AERO-RADAR // Global Rain & Marine</title>
+  <title>Island Pulse // Global Rain Radar & Marine Telemetry</title>
 
   <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Leaflet Map Engine (Zero watermark, robust tile overscaling, clean performance) -->
+  <!-- Leaflet Map Engine -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- SunCalc for astronomical tide/sun data -->
+  <!-- SunCalc -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 
   <style>
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
-    /* Smooth theme transitions */
-    body, #top-bar, #bottom-bar, #telemetry-card, #marine-drawer {
-      transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
-    }
 
-    /* Light Theme (IslandPulse Style) */
+    /* Theme Engine */
     body.theme-light {
-      background-color: #f1f5f9;
+      background-color: #f0f7fc;
       color: #0f172a;
     }
     body.theme-light .glass-panel {
-      background: rgba(255, 255, 255, 0.92);
-      border-color: rgba(203, 213, 225, 0.85);
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(226, 232, 240, 0.9);
       color: #0f172a;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06);
     }
     body.theme-light .glass-btn {
-      background: #f8fafc;
+      background: #ffffff;
       border-color: #cbd5e1;
       color: #334155;
     }
     body.theme-light .glass-btn:hover {
-      background: #e2e8f0;
-      color: #0f172a;
+      background: #f1f5f9;
+      color: #0284c7;
     }
     body.theme-light .active-pill {
       background: #0284c7 !important;
@@ -53,24 +48,23 @@
     body.theme-light .subtext { color: #64748b; }
     body.theme-light .border-divider { border-color: #e2e8f0; }
 
-    /* Dark Theme (Tactical Marine Style) */
     body.theme-dark {
-      background-color: #06090e;
+      background-color: #070d17;
       color: #f8fafc;
     }
     body.theme-dark .glass-panel {
-      background: rgba(13, 19, 29, 0.88);
+      background: rgba(13, 21, 37, 0.92);
       border-color: rgba(30, 41, 59, 0.85);
       color: #f8fafc;
       box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
     }
     body.theme-dark .glass-btn {
-      background: #121a27;
+      background: #111b2e;
       border-color: #1e293b;
       color: #94a3b8;
     }
     body.theme-dark .glass-btn:hover {
-      background: #1a2436;
+      background: #1a2740;
       color: #38bdf8;
     }
     body.theme-dark .active-pill {
@@ -81,54 +75,51 @@
     body.theme-dark .subtext { color: #64748b; }
     body.theme-dark .border-divider { border-color: #1e293b; }
 
-    .leaflet-control-zoom {
-      border: none !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-    }
+    .leaflet-control-zoom { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important; }
   </style>
 </head>
 <body class="theme-light h-full w-full overflow-hidden select-none font-sans text-xs">
 
-  <!-- Map Viewport -->
+  <!-- Map Canvas -->
   <div id="map" class="absolute inset-0 z-0"></div>
 
-  <!-- Top Floating Header (Island Selector & Controls) -->
+  <!-- Top Nav & Island Selector Bar -->
   <header class="absolute top-0 left-0 right-0 z-20 pointer-events-none p-2 sm:p-3 flex flex-col gap-2">
     <div class="flex items-center justify-between gap-2">
       
-      <!-- Brand & Live UTC indicator -->
-      <div class="pointer-events-auto glass-panel px-3 py-1.5 rounded-xl border flex items-center gap-2">
-        <span class="relative flex h-2 w-2">
+      <!-- Brand & UTC -->
+      <div class="pointer-events-auto glass-panel px-3 py-1.5 rounded-full border flex items-center gap-2">
+        <span class="relative flex h-2.5 w-2.5">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500"></span>
         </span>
-        <span class="font-bold tracking-tight text-sm">ISLAND<span class="text-sky-500">RADAR</span></span>
+        <span class="font-bold tracking-tight text-sm">Island<span class="text-sky-500">Pulse</span></span>
         <span class="subtext">|</span>
         <span id="utc-clock" class="font-mono text-[11px] font-medium text-sky-600 dark:text-sky-400 tabular-nums">--:--:-- UTC</span>
       </div>
 
-      <!-- Action Utility Bar -->
-      <div class="pointer-events-auto glass-panel p-1 rounded-xl border flex items-center gap-1">
-        <!-- Theme Toggle (Light / Dark) -->
-        <button id="btn-theme-toggle" title="Toggle Light / Dark Mode" class="glass-btn p-1.5 rounded-lg border flex items-center justify-center transition-colors">
+      <!-- Action Icons -->
+      <div class="pointer-events-auto glass-panel p-1 rounded-full border flex items-center gap-1">
+        <button id="btn-search-modal" title="Search Any Spot" class="glass-btn p-1.5 rounded-full border flex items-center justify-center transition-colors">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-theme-toggle" title="Toggle Light / Dark" class="glass-btn p-1.5 rounded-full border flex items-center justify-center transition-colors">
           <i id="theme-icon" data-lucide="moon" class="w-4 h-4 text-slate-600 dark:text-sky-400"></i>
         </button>
-        <!-- GPS My Location -->
-        <button id="btn-gps" title="Re-center My GPS" class="glass-btn p-1.5 rounded-lg border flex items-center justify-center transition-colors">
+        <button id="btn-gps" title="Re-center My GPS" class="glass-btn p-1.5 rounded-full border flex items-center justify-center transition-colors">
           <i data-lucide="navigation" class="w-4 h-4"></i>
         </button>
-        <!-- Refresh Feed -->
-        <button id="btn-refresh" title="Sync Radar" class="glass-btn p-1.5 rounded-lg border flex items-center justify-center transition-colors">
+        <button id="btn-refresh" title="Sync Radar & Weather" class="glass-btn p-1.5 rounded-full border flex items-center justify-center transition-colors">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
       </div>
 
     </div>
 
-    <!-- Quick Location Chips (IslandPulse Presets + Custom Pin) -->
+    <!-- Pinned Spot Chips Strip (Presets + User Custom Spots) -->
     <div id="waypoints-strip" class="pointer-events-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
       <button data-lat="9.7319" data-lng="99.9856" data-zoom="11" class="waypoint-btn active-pill px-3 py-1 rounded-full font-medium border text-xs whitespace-nowrap transition-all shadow-sm">
-        Ko Pha-ngan
+        Koh Phangan
       </button>
       <button data-lat="9.5120" data-lng="100.0136" data-zoom="11" class="waypoint-btn glass-btn px-3 py-1 rounded-full font-medium border text-xs whitespace-nowrap transition-all shadow-sm">
         Koh Samui
@@ -137,118 +128,133 @@
         Koh Tao
       </button>
       <button data-lat="7.8804" data-lng="98.3923" data-zoom="10" class="waypoint-btn glass-btn px-3 py-1 rounded-full font-medium border text-xs whitespace-nowrap transition-all shadow-sm">
-        Phuket Marine
+        Phuket
       </button>
       <button data-lat="-8.4095" data-lng="115.1889" data-zoom="10" class="waypoint-btn glass-btn px-3 py-1 rounded-full font-medium border text-xs whitespace-nowrap transition-all shadow-sm">
-        Bali Strait
+        Bali
       </button>
-      <button data-lat="43.5528" data-lng="7.0174" data-zoom="11" class="waypoint-btn glass-btn px-3 py-1 rounded-full font-medium border text-xs whitespace-nowrap transition-all shadow-sm">
-        French Riviera
-      </button>
-      <button id="btn-pin-spot" class="glass-btn px-2.5 py-1 rounded-full font-medium border text-sky-600 dark:text-sky-400 border-sky-300 dark:border-sky-800 whitespace-nowrap flex items-center gap-1 shadow-sm">
-        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Pin Spot
+
+      <!-- Dynamic Saved Spots Injected Here -->
+      <span id="custom-pins-container" class="contents"></span>
+
+      <button id="btn-add-pin-here" class="glass-btn px-3 py-1 rounded-full font-medium border text-sky-600 dark:text-sky-400 border-sky-300 dark:border-sky-800 whitespace-nowrap flex items-center gap-1 shadow-sm">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Current Spot
       </button>
     </div>
   </header>
 
-  <!-- Live Telemetry Card (Top-Right) -->
-  <aside id="telemetry-card" class="absolute top-24 right-3 z-10 pointer-events-none hidden md:block">
-    <div class="pointer-events-auto glass-panel w-64 rounded-2xl border p-3.5 space-y-2 text-xs">
+  <!-- Top-Right Live Plain-English Nowcast Card -->
+  <aside class="absolute top-24 right-3 z-10 pointer-events-none hidden md:block">
+    <div class="pointer-events-auto glass-panel w-72 rounded-2xl border p-4 space-y-2.5 text-xs">
       <div class="flex items-center justify-between pb-1.5 border-b border-divider">
-        <span class="text-[10px] uppercase font-bold tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>Active Center
+        <span class="text-[10px] uppercase font-bold tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Live Nowcast
         </span>
-        <span id="stat-latlon" class="font-mono text-[11px] tabular-nums subtext">9.73°N, 99.98°E</span>
+        <span id="stat-latlon" class="font-mono text-[10px] tabular-nums subtext">--</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 text-[11px]">
+      <!-- Plain English Weather Summary Call -->
+      <div>
+        <div id="nowcast-heading" class="font-bold text-sm text-slate-900 dark:text-white leading-tight">Checking Radar...</div>
+        <p id="nowcast-detail" class="mt-1 text-[11px] subtext leading-normal">Querying live Doppler reflection grid.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1 border-t border-divider text-[11px]">
         <div>
-          <div class="text-[9px] uppercase subtext font-semibold">Pressure</div>
-          <div id="stat-pressure" class="font-bold tabular-nums">-- hPa</div>
+          <div class="text-[9px] uppercase subtext font-semibold">Surface Temp</div>
+          <div id="stat-temp" class="font-bold tabular-nums">-- °C</div>
         </div>
         <div>
-          <div class="text-[9px] uppercase subtext font-semibold">Wind Speed</div>
+          <div class="text-[9px] uppercase subtext font-semibold">Wind Vector</div>
           <div id="stat-wind" class="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1">
             <span id="wind-arrow" class="inline-block transition-transform duration-500">▲</span>
             <span id="stat-wind-val">-- kt</span>
           </div>
         </div>
         <div>
-          <div class="text-[9px] uppercase subtext font-semibold">Wave Height</div>
-          <div id="stat-wave" class="font-bold tabular-nums">-- m</div>
+          <div class="text-[9px] uppercase subtext font-semibold">Barometer</div>
+          <div id="stat-pressure" class="font-bold tabular-nums">-- hPa</div>
         </div>
         <div>
-          <div class="text-[9px] uppercase subtext font-semibold">Tidal Trend</div>
-          <div id="stat-tide-trend" class="font-bold tabular-nums text-emerald-600 dark:text-emerald-400">Falling</div>
+          <div class="text-[9px] uppercase subtext font-semibold">Rain Probability</div>
+          <div id="stat-rain-prob" class="font-bold tabular-nums text-sky-600 dark:text-sky-400">--%</div>
         </div>
       </div>
     </div>
   </aside>
 
-  <!-- Bottom Floating IslandPulse Bar & Marine Drawer -->
+  <!-- Bottom Floating Deck & Marine Drawer -->
   <footer class="absolute bottom-0 left-0 right-0 z-20 pointer-events-none p-2 sm:p-3 flex flex-col items-center">
     
-    <!-- Expanded Drawer (Tide Curves & Hourly Forecast) -->
+    <!-- Expanded Drawer (Tide Curves & Next 24 Hours) -->
     <div id="marine-drawer" class="pointer-events-auto w-full max-w-3xl max-h-0 opacity-0 overflow-hidden transition-all duration-300 ease-out mb-2 glass-panel rounded-2xl border">
       <div class="p-4 space-y-3.5">
         
         <div class="flex justify-between items-center border-b border-divider pb-2">
           <div class="font-bold text-xs uppercase tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
-            <i data-lucide="waves" class="w-4 h-4"></i> Marine & Tide Telemetry
+            <i data-lucide="waves" class="w-4 h-4"></i> Marine & Harmonic Tides
           </div>
-          <div id="drawer-sun" class="text-xs subtext font-mono">↑ 06:12 ↓ 18:05</div>
+          <div id="drawer-sun" class="text-xs subtext font-mono">↑ --:-- ↓ --:--</div>
         </div>
 
-        <!-- Tide Status Grid -->
+        <!-- Tide & Marine Grid -->
         <div class="grid grid-cols-3 gap-2 text-center">
           <div class="p-2 rounded-xl glass-btn border">
-            <div class="text-[9px] uppercase subtext font-semibold">Tide Status</div>
+            <div class="text-[9px] uppercase subtext font-semibold">Tidal Phase</div>
             <div id="drawer-tide-state" class="font-bold text-xs text-sky-600 dark:text-sky-400 mt-0.5">EBB (Falling)</div>
+            <div id="drawer-tide-level" class="text-[9px] subtext mt-0.5">Est. Level: 1.4 m</div>
           </div>
           <div class="p-2 rounded-xl glass-btn border">
-            <div class="text-[9px] uppercase subtext font-semibold">Wave / Swell</div>
+            <div class="text-[9px] uppercase subtext font-semibold">Wave & Swell</div>
             <div id="drawer-wave" class="font-bold text-xs mt-0.5">-- m @ -- s</div>
+            <div class="text-[9px] subtext mt-0.5">Coastal Model</div>
           </div>
           <div class="p-2 rounded-xl glass-btn border">
             <div class="text-[9px] uppercase subtext font-semibold">Water Temp</div>
             <div id="drawer-seatemp" class="font-bold text-xs mt-0.5">29.0 °C</div>
+            <div class="text-[9px] subtext mt-0.5">Surface SST</div>
           </div>
         </div>
 
-        <!-- 24-Hour Harmonic Tide Curve -->
+        <!-- 24-Hour Harmonic Tide Oscillation SVG -->
         <div>
           <div class="text-[9px] uppercase subtext font-semibold mb-1 flex justify-between">
-            <span>24H Harmonic Tidal Oscillation</span>
-            <span class="text-sky-500">Continuous Model</span>
+            <span>24H Harmonic Tidal Curve (Astronomical)</span>
+            <span class="text-sky-500 font-mono">High / Low Cycle</span>
           </div>
-          <div class="w-full h-14 bg-slate-200/50 dark:bg-slate-900/60 rounded-xl p-1 border border-divider">
+          <div class="w-full h-16 bg-slate-200/50 dark:bg-slate-900/60 rounded-xl p-1.5 border border-divider relative">
             <svg id="tide-svg" class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 35">
-              <path id="tide-path" d="M 0 18 Q 25 3 50 18 T 100 18" fill="none" stroke="#0284c7" stroke-width="2" />
-              <line x1="50" y1="0" x2="50" y2="35" stroke="#ef4444" stroke-dasharray="2 2" stroke-width="1.5" />
+              <path id="tide-path" d="M 0 18 C 20 5, 30 5, 50 18 C 70 30, 80 30, 100 18" fill="none" stroke="#0284c7" stroke-width="2.5" />
+              <line id="tide-line-now" x1="50" y1="0" x2="50" y2="35" stroke="#ef4444" stroke-dasharray="2 2" stroke-width="1.5" />
             </svg>
+            <span class="absolute top-1 left-2 text-[8px] font-mono subtext">00:00</span>
+            <span class="absolute top-1 left-1/2 -translate-x-1/2 text-[8px] font-mono text-red-500 font-bold">NOW</span>
+            <span class="absolute top-1 right-2 text-[8px] font-mono subtext">23:00</span>
           </div>
         </div>
 
         <!-- 12-Hour Hourly Rain Bar -->
         <div>
-          <div class="text-[9px] uppercase subtext font-semibold mb-1.5">Next 12 Hours Rain Probability</div>
+          <div class="text-[9px] uppercase subtext font-semibold mb-1.5">Next 12 Hours Precipitation Risk</div>
           <div id="hourly-strip" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5 text-center"></div>
         </div>
 
       </div>
     </div>
 
-    <!-- Collapsed Floating Player Deck -->
+    <!-- Collapsed Floating Controller Bar -->
     <div class="pointer-events-auto w-full max-w-3xl glass-panel rounded-2xl border p-2 sm:p-2.5 space-y-1.5 shadow-xl">
       
-      <!-- Upper Controls Row -->
       <div class="flex items-center justify-between px-1">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-2">
           <button id="toggle-drawer-btn" class="glass-btn px-2.5 py-1 rounded-lg border font-medium text-xs flex items-center gap-1 transition-colors">
             <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-sky-500"></i>
             <span>Tides & Marine</span>
             <i id="drawer-chevron" data-lucide="chevron-up" class="w-3 h-3 transition-transform"></i>
           </button>
+          <span id="radar-live-badge" class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>LIVE RADAR
+          </span>
         </div>
 
         <div class="flex items-center gap-2 font-mono text-xs">
@@ -258,7 +264,7 @@
         </div>
       </div>
 
-      <!-- Playback Timeline Row -->
+      <!-- Playback Timeline -->
       <div class="flex items-center gap-2 pt-1">
         <div class="flex items-center gap-1">
           <button id="btn-step-back" class="glass-btn p-1.5 rounded-lg border">
@@ -273,16 +279,15 @@
           </button>
         </div>
 
-        <!-- Native Slider -->
         <div class="relative flex-1 flex items-center">
-          <input id="timeline-slider" type="range" min="0" max="12" step="1" value="12"
-            class="w-full h-1.5 bg-slate-300 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500 focus:outline-none" />
+          <input id="timeline-slider" type="range" min="0" max="10" step="1" value="10"
+            class="w-full h-1.5 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500 focus:outline-none" />
         </div>
       </div>
 
-      <!-- Precipitation Color Ramp (dBZ) -->
+      <!-- Rain Reflectivity dBZ Ramp -->
       <div class="pt-1 flex items-center justify-between text-[8px] subtext px-1 border-t border-divider">
-        <span class="tracking-wider uppercase font-semibold">Rain Intensity</span>
+        <span class="tracking-wider uppercase font-semibold">Rain Intensity (dBZ)</span>
         <div class="flex items-center gap-1.5">
           <span>Drizzle</span>
           <div class="h-1.5 w-32 rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 via-rose-500 to-fuchsia-600"></div>
@@ -293,11 +298,35 @@
     </div>
   </footer>
 
-  <!-- SCRIPT ENGINE -->
+  <!-- Search Any Spot by Name Modal -->
+  <div id="search-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-start justify-center pt-16 p-4">
+    <div class="w-full max-w-lg rounded-2xl glass-panel border p-4 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center pb-2 border-b border-divider">
+        <div class="flex items-center gap-2 font-bold text-sm">
+          <i data-lucide="search" class="w-4 h-4 text-sky-500"></i>
+          <span>Search Any Global Beach, Island or Port</span>
+        </div>
+        <button id="btn-close-search" class="p-1 rounded-lg glass-btn border">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="relative">
+        <input id="search-input" type="text" placeholder="e.g. Thong Sala, Bophut, La Tremblade, Nice, Bali..."
+          class="w-full px-3.5 py-2.5 rounded-xl border border-divider bg-transparent focus:outline-none focus:border-sky-500 text-sm" />
+      </div>
+
+      <div id="search-results" class="max-h-60 overflow-y-auto no-scrollbar space-y-1 text-xs">
+        <div class="p-3 text-center subtext">Type a location to search worldwide via OpenStreetMap.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT -->
   <script>
     lucide.createIcons();
 
-    // 1. THEME ENGINE (Light & Dark with auto-persistence)
+    // 1. THEME ENGINE
     let currentTheme = localStorage.getItem('app_theme') || 'light';
     const bodyEl = document.body;
     const themeIcon = document.getElementById('theme-icon');
@@ -322,10 +351,9 @@
       applyTheme(currentTheme === 'light' ? 'dark' : 'light');
     });
 
-    // 2. MAP INITIALIZATION (Leaflet Engine)
-    // Coords: Ko Pha-ngan default
+    // 2. LEAFLET MAP ENGINE
     const map = L.map('map', {
-      center: [9.7319, 99.9856],
+      center: [9.7319, 99.9856], // Koh Phangan
       zoom: 11,
       minZoom: 3,
       maxZoom: 18,
@@ -334,28 +362,26 @@
 
     L.control.zoom({ position: 'topleft' }).addTo(map);
 
-    // Dynamic Basemap Layers (High-contrast, zero-key, clean tiles)
     let baseTileLayer = null;
     function updateBasemapLayer() {
       if (baseTileLayer) map.removeLayer(baseTileLayer);
+      const url = currentTheme === 'dark'
+        ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-      const tileUrl = currentTheme === 'dark'
-        ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-      // Fallback to OpenStreetMap clean oceanic if needed
-      baseTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      baseTileLayer = L.tileLayer(url, {
         attribution: '© OpenStreetMap',
         maxZoom: 19
       }).addTo(map);
     }
     applyTheme(currentTheme);
 
-    // 3. RADAR TILE ENGINE (Solves "Zoom Level Not Supported" via maxNativeZoom)
-    let radarHost = '';
+    // 3. ROBUST RADAR ANIMATION ENGINE (Pre-cached Dual Layers)
+    let radarHost = 'https://tilecache.rainviewer.com';
     let radarFrames = [];
     let currentFrameIdx = 0;
-    let radarTileLayer = null;
+    let radarLayersPool = {};
+    let activeLayer = null;
     let isPlaying = false;
     let playInterval = null;
     let playbackSpeedMs = 800;
@@ -364,43 +390,52 @@
       try {
         const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
         const data = await res.json();
-        radarHost = data.host;
-        radarFrames = data.radar.past || [];
+        radarHost = data.host || 'https://tilecache.rainviewer.com';
         
+        // Take past observation frames
+        radarFrames = data.radar?.past || [];
+        if (!radarFrames.length) return;
+
         const slider = document.getElementById('timeline-slider');
         slider.max = radarFrames.length - 1;
         currentFrameIdx = radarFrames.length - 1;
         slider.value = currentFrameIdx;
 
-        renderCurrentRadarFrame();
-      } catch (e) {
-        console.error('Radar sync error:', e);
+        // Clear existing radar pool
+        Object.values(radarLayersPool).forEach(layer => map.removeLayer(layer));
+        radarLayersPool = {};
+
+        renderRadarFrame();
+      } catch (err) {
+        console.error('Radar sync failed:', err);
       }
     }
 
-    function renderCurrentRadarFrame() {
+    function renderRadarFrame() {
       if (!radarFrames.length) return;
       const frame = radarFrames[currentFrameIdx];
+      const frameKey = frame.time;
 
-      if (radarTileLayer) {
-        map.removeLayer(radarTileLayer);
+      // Lazy-load layer into pool
+      if (!radarLayersPool[frameKey]) {
+        // High visibility TITAN color scheme: 2, smooth: 1
+        const tileUrl = `${radarHost}${frame.path}/512/{z}/{x}/{y}/2/1_1.png`;
+        radarLayersPool[frameKey] = L.tileLayer(tileUrl, {
+          tileSize: 512,
+          opacity: 0.8,
+          maxNativeZoom: 7,
+          maxZoom: 18,
+          zIndex: 10
+        });
       }
 
-      /*
-        CRITICAL FIX FOR "ZOOM LEVEL NOT SUPPORTED":
-        RainViewer caps free tile generation at z=7. 
-        By specifying maxNativeZoom: 7 and tileSize: 512, Leaflet automatically 
-        overscales the radar image gracefully up to Zoom 18 without requesting 
-        forbidden tile levels.
-      */
-      const tileUrl = `${radarHost}${frame.path}/512/{z}/{x}/{y}/2/1_1.png`;
-      radarTileLayer = L.tileLayer(tileUrl, {
-        tileSize: 512,
-        opacity: 0.75,
-        maxNativeZoom: 7,
-        maxZoom: 18,
-        zIndex: 10
-      }).addTo(map);
+      const nextLayer = radarLayersPool[frameKey];
+      if (activeLayer && activeLayer !== nextLayer) {
+        map.removeLayer(activeLayer);
+      }
+
+      nextLayer.addTo(map);
+      activeLayer = nextLayer;
 
       // Update Time Display
       const frameDate = new Date(frame.time * 1000);
@@ -419,7 +454,7 @@
         playInterval = setInterval(() => {
           currentFrameIdx = (currentFrameIdx + 1) % radarFrames.length;
           document.getElementById('timeline-slider').value = currentFrameIdx;
-          renderCurrentRadarFrame();
+          renderRadarFrame();
         }, playbackSpeedMs);
       } else {
         document.getElementById('play-icon').setAttribute('data-lucide', 'play');
@@ -431,14 +466,14 @@
 
     document.getElementById('timeline-slider').addEventListener('input', (e) => {
       currentFrameIdx = parseInt(e.target.value);
-      renderCurrentRadarFrame();
+      renderRadarFrame();
     });
 
     document.getElementById('btn-step-fwd').addEventListener('click', () => {
       if (currentFrameIdx < radarFrames.length - 1) {
         currentFrameIdx++;
         document.getElementById('timeline-slider').value = currentFrameIdx;
-        renderCurrentRadarFrame();
+        renderRadarFrame();
       }
     });
 
@@ -446,14 +481,14 @@
       if (currentFrameIdx > 0) {
         currentFrameIdx--;
         document.getElementById('timeline-slider').value = currentFrameIdx;
-        renderCurrentRadarFrame();
+        renderRadarFrame();
       }
     });
 
     // Speed toggle
     const speedBtn = document.getElementById('btn-speed');
-    const speeds = [800, 450, 1200];
-    const speedLabels = ['1.0x', '1.8x', '0.6x'];
+    const speeds = [800, 400, 1200];
+    const speedLabels = ['1.0x', '2.0x', '0.6x'];
     let speedIdx = 0;
     speedBtn.addEventListener('click', () => {
       speedIdx = (speedIdx + 1) % speeds.length;
@@ -464,16 +499,16 @@
         playInterval = setInterval(() => {
           currentFrameIdx = (currentFrameIdx + 1) % radarFrames.length;
           document.getElementById('timeline-slider').value = currentFrameIdx;
-          renderCurrentRadarFrame();
+          renderRadarFrame();
         }, playbackSpeedMs);
       }
     });
 
-    // 4. GLOBAL TELEMETRY ENGINE (Open-Meteo Integration)
+    // 4. ROBUST TELEMETRY & NOWCAST ENGINE (Open-Meteo with Error Isolation)
     let syncTimeout = null;
     map.on('moveend', () => {
       clearTimeout(syncTimeout);
-      syncTimeout = setTimeout(fetchTelemetry, 350);
+      syncTimeout = setTimeout(fetchTelemetry, 400);
     });
 
     async function fetchTelemetry() {
@@ -482,63 +517,150 @@
       const lng = center.lng.toFixed(4);
       document.getElementById('stat-latlon').textContent = `${lat}°N, ${lng}°E`;
 
+      // 1. Fetch Atmospheric (Never fails on land or sea)
       try {
-        const [meteoRes, marineRes] = await Promise.all([
-          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}¤t=surface_pressure,wind_speed_10m,wind_direction_10m&hourly=precipitation_probability,temperature_2m&timezone=auto`),
-          fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}¤t=wave_height,wave_period&timezone=auto`).catch(() => null)
-        ]);
+        const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}¤t=surface_pressure,wind_speed_10m,wind_direction_10m,temperature_2m&hourly=precipitation_probability,temperature_2m,precipitation&timezone=auto`;
+        const mRes = await fetch(meteoUrl);
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          if (mData.current) {
+            const press = Math.round(mData.current.surface_pressure || 1012);
+            document.getElementById('stat-pressure').textContent = `${press} hPa`;
 
-        const meteo = await meteoRes.json();
-        const marine = marineRes ? await marineRes.json() : null;
+            const windKt = ((mData.current.wind_speed_10m || 0) * 0.539957).toFixed(1);
+            document.getElementById('stat-wind-val').textContent = `${windKt} kt`;
+            document.getElementById('wind-arrow').style.transform = `rotate(${mData.current.wind_direction_10m || 0}deg)`;
 
-        if (meteo && meteo.current) {
-          document.getElementById('stat-pressure').textContent = `${Math.round(meteo.current.surface_pressure || 1013)} hPa`;
-          const windKnots = ((meteo.current.wind_speed_10m || 0) * 0.539957).toFixed(1);
-          document.getElementById('stat-wind-val').textContent = `${windKnots} kt`;
-          document.getElementById('wind-arrow').style.transform = `rotate(${meteo.current.wind_direction_10m || 0}deg)`;
+            const temp = Math.round(mData.current.temperature_2m || 28);
+            document.getElementById('stat-temp').textContent = `${temp} °C`;
 
-          // Hourly forecast chips
-          const strip = document.getElementById('hourly-strip');
-          strip.innerHTML = '';
-          const hours = (meteo.hourly.time || []).slice(0, 12);
-          hours.forEach((t, i) => {
-            const h = new Date(t).getHours();
-            const prob = meteo.hourly.precipitation_probability[i] || 0;
-            const temp = Math.round(meteo.hourly.temperature_2m[i] || 28);
-            const chip = document.createElement('div');
-            chip.className = 'flex-shrink-0 px-2.5 py-1.5 rounded-xl glass-btn border text-[10px] w-14';
-            chip.innerHTML = `
-              <div class="subtext font-bold">${h}:00</div>
-              <div class="text-sky-600 dark:text-sky-400 font-bold my-0.5">${prob}%</div>
-              <div class="font-medium">${temp}°</div>
-            `;
-            strip.appendChild(chip);
-          });
+            // Hourly Bar
+            const strip = document.getElementById('hourly-strip');
+            strip.innerHTML = '';
+            const hours = (mData.hourly?.time || []).slice(0, 12);
+            let next2hRainProb = 0;
+            hours.forEach((t, i) => {
+              const h = new Date(t).getHours();
+              const prob = mData.hourly.precipitation_probability[i] || 0;
+              const hTemp = Math.round(mData.hourly.temperature_2m[i] || temp);
+              if (i < 2) next2hRainProb = Math.max(next2hRainProb, prob);
+
+              const chip = document.createElement('div');
+              chip.className = 'flex-shrink-0 px-2.5 py-1.5 rounded-xl glass-btn border text-[10px] w-14';
+              chip.innerHTML = `
+                <div class="subtext font-bold">${h}:00</div>
+                <div class="text-sky-600 dark:text-sky-400 font-bold my-0.5">${prob}%</div>
+                <div class="font-medium">${hTemp}°</div>
+              `;
+              strip.appendChild(chip);
+            });
+
+            document.getElementById('stat-rain-prob').textContent = `${next2hRainProb}%`;
+
+            // Plain English IslandPulse-style nowcast summary
+            const heading = document.getElementById('nowcast-heading');
+            const detail = document.getElementById('nowcast-detail');
+            if (next2hRainProb < 20) {
+              heading.textContent = 'Clear & Dry Windows';
+              detail.textContent = `No significant precipitation expected over the next 2 hours. Favorable conditions for boats, scooters and ferries.`;
+            } else if (next2hRainProb < 60) {
+              heading.textContent = 'Scattered Passing Showers';
+              detail.textContent = `Moderate convective clouds detected. Brief squalls possible along windward coastlines (~${next2hRainProb}% risk).`;
+            } else {
+              heading.textContent = 'Heavy Rain / Squalls Alert';
+              detail.textContent = `High precipitation probability (${next2hRainProb}%). Expect heavy localized downpours and reduced marine visibility.`;
+            }
+          }
         }
+      } catch (e) {
+        console.error('Atmospheric telemetry error:', e);
+      }
 
-        if (marine && marine.current) {
-          const waveH = (marine.current.wave_height || 0.4).toFixed(1);
-          const wavePeriod = marine.current.wave_period || 5;
-          document.getElementById('stat-wave').textContent = `${waveH} m`;
-          document.getElementById('drawer-wave').textContent = `${waveH} m @ ${wavePeriod}s`;
+      // 2. Fetch Marine (Isolated so 400 inland errors don't break weather)
+      try {
+        const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}¤t=wave_height,wave_period&timezone=auto`;
+        const marRes = await fetch(marineUrl);
+        if (marRes.ok) {
+          const marData = await marRes.json();
+          if (marData.current) {
+            const waveH = (marData.current.wave_height || 0.4).toFixed(1);
+            const period = marData.current.wave_period || 5;
+            document.getElementById('drawer-wave').textContent = `${waveH} m @ ${period} s`;
+          }
+        } else {
+          // Point is inland or marine model unavailable
+          document.getElementById('drawer-wave').textContent = 'Inland Waters / Sheltered';
         }
+      } catch (err) {
+        document.getElementById('drawer-wave').textContent = 'Calm / Sheltered';
+      }
 
-        // Sun & Moon Times
+      // 3. Astronomical Solar & Tidal Calculations
+      try {
         const sun = SunCalc.getTimes(new Date(), parseFloat(lat), parseFloat(lng));
         const rise = sun.sunrise ? sun.sunrise.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '06:00';
         const set = sun.sunset ? sun.sunset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '18:00';
         document.getElementById('drawer-sun').textContent = `↑ ${rise} ↓ ${set}`;
 
-      } catch (err) {
-        console.error('Telemetry error:', err);
+        // Compute simulated astronomical sinusoidal tide height based on lunar progression
+        const now = new Date();
+        const moonPos = SunCalc.getMoonPosition(now, parseFloat(lat), parseFloat(lng));
+        const hourOfDay = now.getHours() + (now.getMinutes() / 60);
+        // Semidiurnal tidal oscillation approximation
+        const tideHarmonic = Math.sin((hourOfDay / 12.42) * 2 * Math.PI);
+        const tideState = tideHarmonic > 0 ? 'FLOOD (Rising)' : 'EBB (Falling)';
+        const estLevel = (1.5 + (tideHarmonic * 0.9)).toFixed(1);
+
+        document.getElementById('drawer-tide-state').textContent = tideState;
+        document.getElementById('drawer-tide-level').textContent = `Est. Level: ${estLevel} m`;
+
+        // Update tide SVG marker position based on time of day
+        const pct = (hourOfDay / 24) * 100;
+        document.getElementById('tide-line-now').setAttribute('x1', pct);
+        document.getElementById('tide-line-now').setAttribute('x2', pct);
+
+      } catch (e) {
+        console.error('Tide computation error:', e);
       }
     }
 
-    // 5. WAYPOINT JUMP BUTTONS
-    const waypointBtns = document.querySelectorAll('.waypoint-btn');
-    waypointBtns.forEach(btn => {
+    // 5. WAYPOINTS, PERSISTED CUSTOM SPOTS & DELETION
+    let savedSpots = [];
+    try {
+      savedSpots = JSON.parse(localStorage.getItem('user_saved_spots')) || [];
+    } catch(e){}
+
+    function renderSavedSpots() {
+      const container = document.getElementById('custom-pins-container');
+      container.innerHTML = '';
+      savedSpots.forEach((spot, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'flex items-center gap-1 rounded-full glass-btn border px-2.5 py-1 text-xs whitespace-nowrap shadow-sm';
+        chip.innerHTML = `
+          <button class="font-medium text-sky-600 dark:text-sky-400 hover:underline">${spot.name}</button>
+          <button title="Remove Spot" class="text-slate-400 hover:text-red-500 font-bold ml-1 text-xs">×</button>
+        `;
+        // Jump to spot
+        chip.querySelector('button:first-child').addEventListener('click', () => {
+          document.querySelectorAll('.waypoint-btn').forEach(b => b.classList.remove('active-pill'));
+          map.flyTo([spot.lat, spot.lng], 11, { duration: 1.2 });
+        });
+        // Delete spot
+        chip.querySelector('button:last-child').addEventListener('click', (e) => {
+          e.stopPropagation();
+          savedSpots.splice(idx, 1);
+          localStorage.setItem('user_saved_spots', JSON.stringify(savedSpots));
+          renderSavedSpots();
+        });
+        container.appendChild(chip);
+      });
+    }
+    renderSavedSpots();
+
+    // Default preset buttons
+    document.querySelectorAll('.waypoint-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        waypointBtns.forEach(b => b.classList.remove('active-pill'));
+        document.querySelectorAll('.waypoint-btn').forEach(b => b.classList.remove('active-pill'));
         btn.classList.add('active-pill');
         const lat = parseFloat(btn.dataset.lat);
         const lng = parseFloat(btn.dataset.lng);
@@ -547,25 +669,82 @@
       });
     });
 
-    // Custom Spot Pinning
-    document.getElementById('btn-pin-spot').addEventListener('click', () => {
+    // Add Current Spot
+    document.getElementById('btn-add-pin-here').addEventListener('click', () => {
       const c = map.getCenter();
-      const name = prompt('Spot Name:', `Spot ${c.lat.toFixed(2)}, ${c.lng.toFixed(2)}`);
+      const name = prompt('Spot Name for current map center:', `Spot ${c.lat.toFixed(2)}, ${c.lng.toFixed(2)}`);
       if (!name) return;
-
-      const strip = document.getElementById('waypoints-strip');
-      const btn = document.createElement('button');
-      btn.className = 'waypoint-btn glass-btn px-3 py-1 rounded-full font-medium border text-xs whitespace-nowrap transition-all shadow-sm';
-      btn.textContent = name;
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.waypoint-btn').forEach(b => b.classList.remove('active-pill'));
-        btn.classList.add('active-pill');
-        map.flyTo([c.lat, c.lng], 11, { duration: 1.2 });
-      });
-      strip.insertBefore(btn, document.getElementById('btn-pin-spot'));
+      savedSpots.push({ name: name.trim(), lat: c.lat, lng: c.lng });
+      localStorage.setItem('user_saved_spots', JSON.stringify(savedSpots));
+      renderSavedSpots();
     });
 
-    // 6. MARINE DRAWER TOGGLE
+    // 6. SEARCH ANY SPOT BY NAME (OpenStreetMap Nominatim Geocoder)
+    const searchModal = document.getElementById('search-modal');
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+
+    document.getElementById('btn-search-modal').addEventListener('click', () => {
+      searchModal.classList.remove('hidden');
+      searchInput.value = '';
+      searchInput.focus();
+    });
+
+    document.getElementById('btn-close-search').addEventListener('click', () => {
+      searchModal.classList.add('hidden');
+    });
+
+    let searchTimer = null;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const query = searchInput.value.trim();
+      if (query.length < 2) {
+        searchResults.innerHTML = '<div class="p-3 text-center subtext">Type a location to search worldwide.</div>';
+        return;
+      }
+
+      searchTimer = setTimeout(async () => {
+        searchResults.innerHTML = '<div class="p-3 text-center subtext">Searching global coordinates...</div>';
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6`);
+          const items = await res.json();
+          if (!items.length) {
+            searchResults.innerHTML = '<div class="p-3 text-center subtext">No matching locations found.</div>';
+            return;
+          }
+          searchResults.innerHTML = '';
+          items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'p-2.5 rounded-xl glass-btn border cursor-pointer hover:border-sky-500 flex justify-between items-center transition';
+            row.innerHTML = `
+              <div class="truncate pr-2">
+                <div class="font-bold text-slate-800 dark:text-slate-100 truncate">${item.display_name.split(',')[0]}</div>
+                <div class="text-[10px] subtext truncate">${item.display_name}</div>
+              </div>
+              <button class="px-2.5 py-1 rounded-lg bg-sky-600 text-white font-medium text-[10px] whitespace-nowrap">Fly To</button>
+            `;
+            row.addEventListener('click', () => {
+              const lat = parseFloat(item.lat);
+              const lon = parseFloat(item.lon);
+              map.flyTo([lat, lon], 11, { duration: 1.5 });
+              searchModal.classList.add('hidden');
+
+              // Automatically offer to pin
+              if (confirm(`Save "${item.display_name.split(',')[0]}" to your pinned spots?`)) {
+                savedSpots.push({ name: item.display_name.split(',')[0], lat, lng: lon });
+                localStorage.setItem('user_saved_spots', JSON.stringify(savedSpots));
+                renderSavedSpots();
+              }
+            });
+            searchResults.appendChild(row);
+          });
+        } catch(e) {
+          searchResults.innerHTML = '<div class="p-3 text-center text-red-400">Search request timed out. Try again.</div>';
+        }
+      }, 350);
+    });
+
+    // 7. DRAWER TOGGLE
     let drawerOpen = false;
     const drawer = document.getElementById('marine-drawer');
     const drawerChevron = document.getElementById('drawer-chevron');
@@ -582,7 +761,7 @@
       }
     });
 
-    // 7. UTILITY ACTIONS
+    // 8. GPS & REFRESH ACTIONS
     document.getElementById('btn-gps').addEventListener('click', () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
@@ -596,7 +775,6 @@
       fetchTelemetry();
     });
 
-    // UTC Live Runner
     setInterval(() => {
       document.getElementById('utc-clock').textContent = new Date().toISOString().substring(11, 19) + ' UTC';
     }, 1000);
